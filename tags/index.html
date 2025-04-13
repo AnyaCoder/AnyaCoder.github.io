@@ -59,7 +59,7 @@
 <nav class="menu dis-select"></nav>
 </div>
 <div class="widgets">
-<widget class="widget-wrapper post-list"><div class="widget-header dis-select"><span class="name">Recent Update</span></div><div class="widget-body fs14"><a class="item title" href="/2025/04/12/NORMAL-MAPPING/"><span class="title">在软渲染器中实现法线贴图 (Normal Mapping)</span></a><a class="item title" href="/2025/04/05/CAMERA/"><span class="title">Camera Implementation</span></a><a class="item title" href="/2025/04/05/PERSPECTIVE-PROJECTION/"><span class="title">Perspective Projection</span></a><a class="item title" href="/2025/04/01/SOFTRASTERIZER-INTRODUCTION/"><span class="title">软光栅渲染器开发记录</span></a><a class="item title" href="/2025/04/06/RENDERING-PIPELINE/"><span class="title">SoftRasterizer 渲染流程解析</span></a><a class="item title" href="/2025/04/06/BLINN-PHONG-SHADER/"><span class="title">Blinn-Phong 着色器实现</span></a><a class="item title" href="/2025/04/03/OBJ-RENDERING-IMPLEMENTATION/"><span class="title">OBJ模型加载与三角形渲染实现</span></a><a class="item title" href="/2025/04/01/LINE-DRAWING-ALGORITHM/"><span class="title">软光栅直线绘制算法实现</span></a><a class="item title" href="/2025/04/04/DIFFUSE-TEXTURE/"><span class="title">Diffuse Texture Loading Implementation</span></a><a class="item title" href="/2025/04/04/Z-BUFFER-IMPLEMENTATION/"><span class="title">Z-Buffer Implementation</span></a></div></widget>
+<widget class="widget-wrapper post-list"><div class="widget-header dis-select"><span class="name">Recent Update</span></div><div class="widget-body fs14"><a class="item title" href="/2025/04/04/Z-BUFFER-IMPLEMENTATION/"><span class="title">Z-Buffer 深度缓冲的实现</span></a><a class="item title" href="/2025/04/06/RENDERING-PIPELINE/"><span class="title">渲染管线简介</span></a><a class="item title" href="/2025/04/05/PERSPECTIVE-PROJECTION/"><span class="title">透视投影</span></a><a class="item title" href="/2025/04/03/OBJ-RENDERING-IMPLEMENTATION/"><span class="title">OBJ模型加载与三角形渲染实现</span></a><a class="item title" href="/2025/04/06/BLINN-PHONG-SHADER/"><span class="title">Blinn-Phong 着色器实现</span></a><a class="item title" href="/2025/04/01/LINE-DRAWING-ALGORITHM/"><span class="title">软光栅直线绘制算法实现</span></a><a class="item title" href="/2025/04/12/NORMAL-MAPPING/"><span class="title">在软渲染器中实现法线贴图 (Normal Mapping)</span></a><a class="item title" href="/2025/04/04/DIFFUSE-TEXTURE/"><span class="title">漫反射材质</span></a><a class="item title" href="/2025/04/05/CAMERA/"><span class="title">摄像机的实现</span></a><a class="item title" href="/2025/04/01/SOFTRASTERIZER-INTRODUCTION/"><span class="title">软光栅渲染器开发记录</span></a></div></widget>
 </div>
 
 </div></aside><div class="l_main" id="main">
@@ -83,28 +83,12 @@
           <span class='name'>计算机图形学</span>
         </a>
       
-        <a class='tag' href="/tags/%E6%B8%B2%E6%9F%93%E5%BC%95%E6%93%8E/">
-          <span class='name'>渲染引擎</span>
-        </a>
-      
         <a class='tag' href="/tags/Rendering/">
           <span class='name'>Rendering</span>
         </a>
       
-        <a class='tag' href="/tags/%E7%9D%80%E8%89%B2%E5%99%A8/">
-          <span class='name'>着色器</span>
-        </a>
-      
-        <a class='tag' href="/tags/Texture-Mapping/">
-          <span class='name'>Texture Mapping</span>
-        </a>
-      
-        <a class='tag' href="/tags/Camera-System/">
-          <span class='name'>Camera System</span>
-        </a>
-      
-        <a class='tag' href="/tags/View-Matrix/">
-          <span class='name'>View Matrix</span>
+        <a class='tag' href="/tags/%E6%B8%B2%E6%9F%93%E5%BC%95%E6%93%8E/">
+          <span class='name'>渲染引擎</span>
         </a>
       
         <a class='tag' href="/tags/%E5%9B%BE%E5%BD%A2%E5%AD%A6/">
@@ -115,12 +99,24 @@
           <span class='name'>渲染</span>
         </a>
       
-        <a class='tag' href="/tags/%E6%B3%95%E7%BA%BF%E8%B4%B4%E5%9B%BE/">
-          <span class='name'>法线贴图</span>
-        </a>
-      
         <a class='tag' href="/tags/%E8%BD%AF%E6%B8%B2%E6%9F%93%E5%99%A8/">
           <span class='name'>软渲染器</span>
+        </a>
+      
+        <a class='tag' href="/tags/Camera-System/">
+          <span class='name'>Camera System</span>
+        </a>
+      
+        <a class='tag' href="/tags/View-Matrix/">
+          <span class='name'>View Matrix</span>
+        </a>
+      
+        <a class='tag' href="/tags/Texture-Mapping/">
+          <span class='name'>Texture Mapping</span>
+        </a>
+      
+        <a class='tag' href="/tags/%E7%9D%80%E8%89%B2%E5%99%A8/">
+          <span class='name'>着色器</span>
         </a>
       
         <a class='tag' href="/tags/%E6%A8%A1%E5%9E%8B%E6%B8%B2%E6%9F%93/">
@@ -135,8 +131,24 @@
           <span class='name'>渲染管线</span>
         </a>
       
+        <a class='tag' href="/tags/%E6%B3%95%E7%BA%BF%E8%B4%B4%E5%9B%BE/">
+          <span class='name'>法线贴图</span>
+        </a>
+      
         <a class='tag' href="/tags/Depth-Buffer/">
           <span class='name'>Depth Buffer</span>
+        </a>
+      
+        <a class='tag' href="/tags/PBR-%E5%9F%BA%E7%A1%80/">
+          <span class='name'>PBR 基础</span>
+        </a>
+      
+        <a class='tag' href="/tags/AO/">
+          <span class='name'>AO</span>
+        </a>
+      
+        <a class='tag' href="/tags/%E8%B4%B4%E5%9B%BE/">
+          <span class='name'>贴图</span>
         </a>
       
         <a class='tag' href="/tags/%E5%9F%BA%E7%A1%80%E7%9F%A5%E8%AF%86/">

@@ -17,18 +17,18 @@
   <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#000">
   <meta name="theme-color" content="#f9fafb">
   
-  <title>Camera Implementation - Anya's Blog</title>
+  <title>摄像机的实现 - Anya's Blog</title>
 
   
     <meta name="description" content="概述本文档详细记录了在 SoftRasterizer 项目中实现 Camera 类的全过程，包括其设计、核心代码、应用方式以及验证方法。通过该类，我们实现了灵活的相机控制，支持 OpenGL 风格的视图变换。 核心实现1. Camera 类定义1234567891011121314151617181920&#x2F;&#x2F; camera.h#pragma once#include &quot;math&#x2F;matr">
 <meta property="og:type" content="article">
-<meta property="og:title" content="Camera Implementation">
+<meta property="og:title" content="摄像机的实现">
 <meta property="og:url" content="http://example.com/2025/04/05/CAMERA/index.html">
 <meta property="og:site_name" content="Anya&#39;s Blog">
 <meta property="og:description" content="概述本文档详细记录了在 SoftRasterizer 项目中实现 Camera 类的全过程，包括其设计、核心代码、应用方式以及验证方法。通过该类，我们实现了灵活的相机控制，支持 OpenGL 风格的视图变换。 核心实现1. Camera 类定义1234567891011121314151617181920&#x2F;&#x2F; camera.h#pragma once#include &quot;math&#x2F;matr">
 <meta property="og:locale" content="en_US">
 <meta property="article:published_time" content="2025-04-04T16:00:00.000Z">
-<meta property="article:modified_time" content="2025-04-12T12:33:15.556Z">
+<meta property="article:modified_time" content="2025-04-13T06:30:03.262Z">
 <meta property="article:author" content="AnyaCoder">
 <meta property="article:tag" content="Rendering">
 <meta property="article:tag" content="Camera System">
@@ -68,7 +68,7 @@
 <div class="widgets">
 
 
-<widget class="widget-wrapper post-list"><div class="widget-header dis-select"><span class="name">Recent Update</span></div><div class="widget-body fs14"><a class="item title" href="/2025/04/12/NORMAL-MAPPING/"><span class="title">在软渲染器中实现法线贴图 (Normal Mapping)</span></a><a class="item title" href="/2025/04/05/CAMERA/"><span class="title">Camera Implementation</span></a><a class="item title" href="/2025/04/05/PERSPECTIVE-PROJECTION/"><span class="title">Perspective Projection</span></a><a class="item title" href="/2025/04/01/SOFTRASTERIZER-INTRODUCTION/"><span class="title">软光栅渲染器开发记录</span></a><a class="item title" href="/2025/04/06/RENDERING-PIPELINE/"><span class="title">SoftRasterizer 渲染流程解析</span></a><a class="item title" href="/2025/04/06/BLINN-PHONG-SHADER/"><span class="title">Blinn-Phong 着色器实现</span></a><a class="item title" href="/2025/04/03/OBJ-RENDERING-IMPLEMENTATION/"><span class="title">OBJ模型加载与三角形渲染实现</span></a><a class="item title" href="/2025/04/01/LINE-DRAWING-ALGORITHM/"><span class="title">软光栅直线绘制算法实现</span></a><a class="item title" href="/2025/04/04/DIFFUSE-TEXTURE/"><span class="title">Diffuse Texture Loading Implementation</span></a><a class="item title" href="/2025/04/04/Z-BUFFER-IMPLEMENTATION/"><span class="title">Z-Buffer Implementation</span></a></div></widget>
+<widget class="widget-wrapper post-list"><div class="widget-header dis-select"><span class="name">Recent Update</span></div><div class="widget-body fs14"><a class="item title" href="/2025/04/04/Z-BUFFER-IMPLEMENTATION/"><span class="title">Z-Buffer 深度缓冲的实现</span></a><a class="item title" href="/2025/04/06/RENDERING-PIPELINE/"><span class="title">渲染管线简介</span></a><a class="item title" href="/2025/04/05/PERSPECTIVE-PROJECTION/"><span class="title">透视投影</span></a><a class="item title" href="/2025/04/03/OBJ-RENDERING-IMPLEMENTATION/"><span class="title">OBJ模型加载与三角形渲染实现</span></a><a class="item title" href="/2025/04/06/BLINN-PHONG-SHADER/"><span class="title">Blinn-Phong 着色器实现</span></a><a class="item title" href="/2025/04/01/LINE-DRAWING-ALGORITHM/"><span class="title">软光栅直线绘制算法实现</span></a><a class="item title" href="/2025/04/12/NORMAL-MAPPING/"><span class="title">在软渲染器中实现法线贴图 (Normal Mapping)</span></a><a class="item title" href="/2025/04/04/DIFFUSE-TEXTURE/"><span class="title">漫反射材质</span></a><a class="item title" href="/2025/04/05/CAMERA/"><span class="title">摄像机的实现</span></a><a class="item title" href="/2025/04/01/SOFTRASTERIZER-INTRODUCTION/"><span class="title">软光栅渲染器开发记录</span></a></div></widget>
 </div>
 
 </div></aside><div class="l_main" id="main">
@@ -80,13 +80,13 @@
 <div class="article banner top">
   <div class="content">
     <div class="top bread-nav footnote"><div class="left"><div class="flex-row" id="breadcrumb"><a class="cap breadcrumb" href="/">Home</a>
-<span class="sep"></span><a class="cap breadcrumb" href="/">Blog</a><span class="sep"></span><a class="cap breadcrumb-link" href="/categories/Computer-Graphics/">Computer Graphics</a></div>
-<div class="flex-row" id="post-meta"><span class="text created">Posted on: <time datetime="2025-04-04T16:00:00.000Z">2025-04-05</time></span><span class="sep updated"></span><span class="text updated">Updated on: <time datetime="2025-04-12T12:33:15.556Z">2025-04-12</time></span></div></div></div>
+<span class="sep"></span><a class="cap breadcrumb" href="/">Blog</a><span class="sep"></span><a class="cap breadcrumb-link" href="/categories/Computer-Graphics/">Computer Graphics</a> <span class="sep"></span> <a class="cap breadcrumb-link" href="/categories/Computer-Graphics/%E6%8A%80%E6%9C%AF%E5%88%86%E4%BA%AB/">技术分享</a></div>
+<div class="flex-row" id="post-meta"><span class="text created">Posted on: <time datetime="2025-04-04T16:00:00.000Z">2025-04-05</time></span><span class="sep updated"></span><span class="text updated">Updated on: <time datetime="2025-04-13T06:30:03.262Z">2025-04-13</time></span></div></div></div>
     
     <div class="bottom only-title">
       
       <div class="text-area">
-        <h1 class="text title"><span>Camera Implementation</span></h1>
+        <h1 class="text title"><span>摄像机的实现</span></h1>
         
       </div>
     </div>
@@ -160,7 +160,7 @@
     </section>
     </div>
 </article>
-<div class="related-wrap" id="read-next"><section class="body"><div class="item" id="prev"><div class="note">Newer</div><a href="/2025/04/05/PERSPECTIVE-PROJECTION/">Perspective Projection</a></div><div class="item" id="next"><div class="note">Older</div><a href="/2025/04/04/DIFFUSE-TEXTURE/">Diffuse Texture Loading Implementation</a></div></section></div>
+<div class="related-wrap" id="read-next"><section class="body"><div class="item" id="prev"><div class="note">Newer</div><a href="/2025/04/05/PERSPECTIVE-PROJECTION/">透视投影</a></div><div class="item" id="next"><div class="note">Older</div><a href="/2025/04/04/DIFFUSE-TEXTURE/">漫反射材质</a></div></section></div>
 
 
 

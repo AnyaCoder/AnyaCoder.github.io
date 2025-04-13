@@ -28,7 +28,7 @@
 <meta property="og:description" content="直线光栅化基础算法 - Bresenham实现算法简介Bresenham算法是计算机图形学中最基础的直线光栅化算法，通过整数运算高效确定最佳逼近直线路径的像素点。 核心特点 完全整数运算，无浮点计算 避免乘除法，仅用加减和位运算 一次生成一个像素，时间复杂度O(n)  实现原理基本思想算法通过误差项决定下一个像素的选择：  以x为步进方向 计算Δy&#x2F;Δx的斜率 维护误差项跟踪实际直线与像">
 <meta property="og:locale" content="en_US">
 <meta property="article:published_time" content="2025-03-31T17:15:00.000Z">
-<meta property="article:modified_time" content="2025-04-05T12:56:16.844Z">
+<meta property="article:modified_time" content="2025-04-13T06:30:41.516Z">
 <meta property="article:author" content="AnyaCoder">
 <meta property="article:tag" content="计算机图形学">
 <meta property="article:tag" content="C++">
@@ -68,7 +68,7 @@
 <div class="widgets">
 
 
-<widget class="widget-wrapper post-list"><div class="widget-header dis-select"><span class="name">Recent Update</span></div><div class="widget-body fs14"><a class="item title" href="/2025/04/12/NORMAL-MAPPING/"><span class="title">在软渲染器中实现法线贴图 (Normal Mapping)</span></a><a class="item title" href="/2025/04/05/CAMERA/"><span class="title">Camera Implementation</span></a><a class="item title" href="/2025/04/05/PERSPECTIVE-PROJECTION/"><span class="title">Perspective Projection</span></a><a class="item title" href="/2025/04/01/SOFTRASTERIZER-INTRODUCTION/"><span class="title">软光栅渲染器开发记录</span></a><a class="item title" href="/2025/04/06/RENDERING-PIPELINE/"><span class="title">SoftRasterizer 渲染流程解析</span></a><a class="item title" href="/2025/04/06/BLINN-PHONG-SHADER/"><span class="title">Blinn-Phong 着色器实现</span></a><a class="item title" href="/2025/04/03/OBJ-RENDERING-IMPLEMENTATION/"><span class="title">OBJ模型加载与三角形渲染实现</span></a><a class="item title" href="/2025/04/01/LINE-DRAWING-ALGORITHM/"><span class="title">软光栅直线绘制算法实现</span></a><a class="item title" href="/2025/04/04/DIFFUSE-TEXTURE/"><span class="title">Diffuse Texture Loading Implementation</span></a><a class="item title" href="/2025/04/04/Z-BUFFER-IMPLEMENTATION/"><span class="title">Z-Buffer Implementation</span></a></div></widget>
+<widget class="widget-wrapper post-list"><div class="widget-header dis-select"><span class="name">Recent Update</span></div><div class="widget-body fs14"><a class="item title" href="/2025/04/04/Z-BUFFER-IMPLEMENTATION/"><span class="title">Z-Buffer 深度缓冲的实现</span></a><a class="item title" href="/2025/04/06/RENDERING-PIPELINE/"><span class="title">渲染管线简介</span></a><a class="item title" href="/2025/04/05/PERSPECTIVE-PROJECTION/"><span class="title">透视投影</span></a><a class="item title" href="/2025/04/03/OBJ-RENDERING-IMPLEMENTATION/"><span class="title">OBJ模型加载与三角形渲染实现</span></a><a class="item title" href="/2025/04/06/BLINN-PHONG-SHADER/"><span class="title">Blinn-Phong 着色器实现</span></a><a class="item title" href="/2025/04/01/LINE-DRAWING-ALGORITHM/"><span class="title">软光栅直线绘制算法实现</span></a><a class="item title" href="/2025/04/12/NORMAL-MAPPING/"><span class="title">在软渲染器中实现法线贴图 (Normal Mapping)</span></a><a class="item title" href="/2025/04/04/DIFFUSE-TEXTURE/"><span class="title">漫反射材质</span></a><a class="item title" href="/2025/04/05/CAMERA/"><span class="title">摄像机的实现</span></a><a class="item title" href="/2025/04/01/SOFTRASTERIZER-INTRODUCTION/"><span class="title">软光栅渲染器开发记录</span></a></div></widget>
 </div>
 
 </div></aside><div class="l_main" id="main">
@@ -80,8 +80,8 @@
 <div class="article banner top">
   <div class="content">
     <div class="top bread-nav footnote"><div class="left"><div class="flex-row" id="breadcrumb"><a class="cap breadcrumb" href="/">Home</a>
-<span class="sep"></span><a class="cap breadcrumb" href="/">Blog</a><span class="sep"></span><a class="cap breadcrumb-link" href="/categories/%E6%8A%80%E6%9C%AF%E5%AE%9E%E8%B7%B5/">技术实践</a></div>
-<div class="flex-row" id="post-meta"><span class="text created">Posted on: <time datetime="2025-03-31T17:15:00.000Z">2025-04-01</time></span><span class="sep updated"></span><span class="text updated">Updated on: <time datetime="2025-04-05T12:56:16.844Z">2025-04-05</time></span></div></div></div>
+<span class="sep"></span><a class="cap breadcrumb" href="/">Blog</a><span class="sep"></span><a class="cap breadcrumb-link" href="/categories/Computer-Graphics/">Computer Graphics</a> <span class="sep"></span> <a class="cap breadcrumb-link" href="/categories/Computer-Graphics/%E6%8A%80%E6%9C%AF%E5%88%86%E4%BA%AB/">技术分享</a></div>
+<div class="flex-row" id="post-meta"><span class="text created">Posted on: <time datetime="2025-03-31T17:15:00.000Z">2025-04-01</time></span><span class="sep updated"></span><span class="text updated">Updated on: <time datetime="2025-04-13T06:30:41.516Z">2025-04-13</time></span></div></div></div>
     
     <div class="bottom only-title">
       
