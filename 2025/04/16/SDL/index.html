@@ -1,0 +1,686 @@
+
+<!DOCTYPE html><html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="hexo-theme" content="https://github.com/xaoxuu/hexo-theme-stellar/tree/1.29.1" theme-name="Stellar" theme-version="1.29.1">
+  
+  <meta name="generator" content="Hexo 7.3.0">
+  <meta http-equiv='x-dns-prefetch-control' content='on' />
+  
+  <meta name="renderer" content="webkit">
+  <meta name="force-rendering" content="webkit">
+  <meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+  <meta name="HandheldFriendly" content="True" >
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#000">
+  <meta name="theme-color" content="#f9fafb">
+  
+  <title>使用 SDL 窗口化实时渲染：设计 Scene 和 SDLApp 组件 - Anya's Blog</title>
+
+  
+    <meta name="description" content="使用 SDL 窗口化实时渲染：设计 Scene 和 SDLApp 组件在开发实时渲染应用时，SDL（Simple DirectMedia Layer）是一个轻量且跨平台的库，广泛用于创建窗口、处理输入和显示渲染结果。本文分享了一个基于 SDL 的软件光栅化渲染器的设计与实现，重点介绍如何通过模块化的组件（如 Scene 和 SDLApp）实现窗口化实时渲染。我们将从架构设计、组件实现、场景加载到具">
+<meta property="og:type" content="article">
+<meta property="og:title" content="使用 SDL 窗口化实时渲染：设计 Scene 和 SDLApp 组件">
+<meta property="og:url" content="http://example.com/2025/04/16/SDL/index.html">
+<meta property="og:site_name" content="Anya&#39;s Blog">
+<meta property="og:description" content="使用 SDL 窗口化实时渲染：设计 Scene 和 SDLApp 组件在开发实时渲染应用时，SDL（Simple DirectMedia Layer）是一个轻量且跨平台的库，广泛用于创建窗口、处理输入和显示渲染结果。本文分享了一个基于 SDL 的软件光栅化渲染器的设计与实现，重点介绍如何通过模块化的组件（如 Scene 和 SDLApp）实现窗口化实时渲染。我们将从架构设计、组件实现、场景加载到具">
+<meta property="og:locale" content="en_US">
+<meta property="article:published_time" content="2025-04-15T16:00:00.000Z">
+<meta property="article:modified_time" content="2025-04-16T09:26:55.040Z">
+<meta property="article:author" content="AnyaCoder">
+<meta property="article:tag" content="SDL">
+<meta property="article:tag" content="实时渲染">
+<meta property="article:tag" content="软件光栅化">
+<meta property="article:tag" content="场景管理">
+<meta name="twitter:card" content="summary">
+  
+  
+  
+  <meta name="keywords" content="SDL,实时渲染,软件光栅化,场景管理">
+
+  <!-- feed -->
+  
+
+  <link rel="stylesheet" href="/css/main.css?v=1.29.1">
+
+  
+    <link rel="shortcut icon" href="/%5Bobject%20Object%5D">
+  
+
+  
+
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/lxgw-wenkai-screen-web/style.css" />
+</head>
+<body>
+
+<div class="l_body s:aa content tech" id="start" layout="post" ><aside class="l_left"><div class="leftbar-container">
+
+
+<header class="header"><div class="logo-wrap"><a class="avatar" href="/about/"><div class="bg" style="opacity:0;background-image:url(https://gcore.jsdelivr.net/gh/cdn-x/placeholder@1.0.12/avatar/round/rainbow64@3x.webp);"></div><img no-lazy class="avatar" src="https://cdn.jsdelivr.net/gh/nexmoe/nexmoe.github.io@latest/images/avatar.png" onerror="javascript:this.classList.add('error');this.src='https://gcore.jsdelivr.net/gh/cdn-x/placeholder@1.0.12/image/2659360.svg';"></a><a class="title" href="/"><div class="main" ff="title">Anya's Blog</div></a></div></header>
+
+<div class="nav-area">
+<div class="search-wrapper" id="search-wrapper"><form class="search-form"><a class="search-button" onclick="document.getElementById(&quot;search-input&quot;).focus();"><svg t="1705074644177" viewBox="0 0 1025 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="1560" width="200" height="200"><path d="M1008.839137 935.96571L792.364903 719.491476a56.783488 56.783488 0 0 0-80.152866 0 358.53545 358.53545 0 1 1 100.857314-335.166073 362.840335 362.840335 0 0 1-3.689902 170.145468 51.248635 51.248635 0 1 0 99.217358 26.444296 462.057693 462.057693 0 1 0-158.255785 242.303546l185.930047 185.725053a51.248635 51.248635 0 0 0 72.568068 0 51.248635 51.248635 0 0 0 0-72.978056z" p-id="1561"></path><path d="M616.479587 615.969233a50.428657 50.428657 0 0 0-61.498362-5.534852 174.655348 174.655348 0 0 1-177.525271 3.484907 49.403684 49.403684 0 0 0-58.833433 6.76482l-3.074918 2.869923a49.403684 49.403684 0 0 0 8.609771 78.10292 277.767601 277.767601 0 0 0 286.992355-5.739847 49.403684 49.403684 0 0 0 8.404776-76.667958z" p-id="1562"></path></svg></a><input type="text" class="search-input" id="search-input" placeholder="Search"></form><div id="search-result"></div><div class="search-no-result">No Results!</div></div>
+
+
+<nav class="menu dis-select"></nav>
+</div>
+<div class="widgets">
+
+
+<widget class="widget-wrapper post-list"><div class="widget-header dis-select"><span class="name">Recent Update</span></div><div class="widget-body fs14"><a class="item title" href="/2025/04/18/ThreadPool/"><span class="title">优化软渲染器：线程池设计与性能提升</span></a><a class="item title" href="/2025/04/16/SDL/"><span class="title">使用 SDL 窗口化实时渲染：设计 Scene 和 SDLApp 组件</span></a><a class="item title" href="/2025/04/15/MATMUL_ACCELERATION/"><span class="title">加速小型矩阵乘法：3x3与4x4优化</span></a><a class="item title" href="/2025/04/15/QUATERNION/"><span class="title">使用四元数和变换类管理对象姿态</span></a><a class="item title" href="/2025/04/13/TEXTURE-MAPPINGS/"><span class="title">增强真实感：为软渲染器添加 AO、高光和光泽度贴图</span></a><a class="item title" href="/2025/04/04/Z-BUFFER-IMPLEMENTATION/"><span class="title">Z-Buffer 深度缓冲的实现</span></a><a class="item title" href="/2025/04/06/RENDERING-PIPELINE/"><span class="title">渲染管线简介</span></a><a class="item title" href="/2025/04/05/PERSPECTIVE-PROJECTION/"><span class="title">透视投影</span></a><a class="item title" href="/2025/04/03/OBJ-RENDERING-IMPLEMENTATION/"><span class="title">OBJ模型加载与三角形渲染实现</span></a><a class="item title" href="/2025/04/06/BLINN-PHONG-SHADER/"><span class="title">Blinn-Phong 着色器实现</span></a></div></widget>
+</div>
+
+</div></aside><div class="l_main" id="main">
+
+
+
+
+
+<div class="article banner top">
+  <div class="content">
+    <div class="top bread-nav footnote"><div class="left"><div class="flex-row" id="breadcrumb"><a class="cap breadcrumb" href="/">Home</a>
+<span class="sep"></span><a class="cap breadcrumb" href="/">Blog</a><span class="sep"></span><a class="cap breadcrumb-link" href="/categories/%E5%9B%BE%E5%BD%A2%E5%AD%A6/">图形学</a> <span class="sep"></span> <a class="cap breadcrumb-link" href="/categories/%E5%9B%BE%E5%BD%A2%E5%AD%A6/%E6%B8%B8%E6%88%8F%E5%BC%80%E5%8F%91/">游戏开发</a></div>
+<div class="flex-row" id="post-meta"><span class="text created">Posted on: <time datetime="2025-04-15T16:00:00.000Z">2025-04-16</time></span><span class="sep updated"></span><span class="text updated">Updated on: <time datetime="2025-04-16T09:26:55.040Z">2025-04-16</time></span></div></div></div>
+    
+    <div class="bottom only-title">
+      
+      <div class="text-area">
+        <h1 class="text title"><span>使用 SDL 窗口化实时渲染：设计 Scene 和 SDLApp 组件</span></h1>
+        
+      </div>
+    </div>
+    
+  </div>
+  </div><article class="md-text content"><h1 id="使用-SDL-窗口化实时渲染：设计-Scene-和-SDLApp-组件"><a href="#使用-SDL-窗口化实时渲染：设计-Scene-和-SDLApp-组件" class="headerlink" title="使用 SDL 窗口化实时渲染：设计 Scene 和 SDLApp 组件"></a>使用 SDL 窗口化实时渲染：设计 Scene 和 SDLApp 组件</h1><p>在开发实时渲染应用时，SDL（Simple DirectMedia Layer）是一个轻量且跨平台的库，广泛用于创建窗口、处理输入和显示渲染结果。本文分享了一个基于 SDL 的软件光栅化渲染器的设计与实现，重点介绍如何通过模块化的组件（如 <code>Scene</code> 和 <code>SDLApp</code>）实现窗口化实时渲染。我们将从架构设计、组件实现、场景加载到具体代码细节逐步展开，适合对图形学、游戏开发或系统设计感兴趣的开发者参考。</p>
+<h2 id="背景与目标"><a href="#背景与目标" class="headerlink" title="背景与目标"></a>背景与目标</h2><p>目标是构建一个软件光栅化渲染器，支持加载 3D 模型（OBJ 格式）、应用 Blinn-Phong 着色、处理光照和纹理，并通过 SDL 窗口实时显示渲染结果。核心需求包括：</p>
+<ul>
+<li><strong>模块化设计</strong>：将渲染逻辑与窗口&#x2F;输入处理分离。</li>
+<li><strong>灵活的场景管理</strong>：支持通过配置文件（如 YAML）动态加载场景。</li>
+<li><strong>实时交互</strong>：实现流畅的渲染循环，支持动画和用户输入。</li>
+<li><strong>跨平台兼容</strong>：利用 SDL 确保代码在 Windows、Linux 等平台上运行。</li>
+</ul>
+<p>最终实现了一个渲染器，能够加载非洲头模型（<code>african_head.obj</code>）及其纹理，应用旋转动画，并通过 SDL 窗口显示，帧率信息实时更新在窗口标题栏。</p>
+<h2 id="架构设计"><a href="#架构设计" class="headerlink" title="架构设计"></a>架构设计</h2><p>为了实现上述目标，我们设计了以下核心组件：</p>
+<ol>
+<li><strong>SDLApp</strong>：负责 SDL 窗口管理、事件处理和渲染循环。</li>
+<li><strong>Scene</strong>：管理渲染相关的数据（如模型、材质、光照）和逻辑。</li>
+<li><strong>Renderer</strong>：执行光栅化渲染，将场景绘制到帧缓冲区。</li>
+<li><strong>Framebuffer</strong>：存储渲染结果的像素数据，供 SDL 显示。</li>
+<li><strong>Camera、Light、Model、Material</strong>：场景的子组件，定义视角、光照、几何和材质。</li>
+</ol>
+<p>架构图如下：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line">+------------------+</span><br><span class="line">|      SDLApp      |</span><br><span class="line">| - Window         |</span><br><span class="line">| - Renderer       |</span><br><span class="line">| - Texture        |</span><br><span class="line">| - Event Loop     |</span><br><span class="line">| - FPS Counter    |</span><br><span class="line">+------------------+</span><br><span class="line">         |</span><br><span class="line">         v</span><br><span class="line">+------------------+</span><br><span class="line">|      Scene       |</span><br><span class="line">| - Framebuffer    |</span><br><span class="line">| - Renderer       |</span><br><span class="line">| - Camera         |</span><br><span class="line">| - Lights         |</span><br><span class="line">| - Objects        |</span><br><span class="line">|   - Model        |</span><br><span class="line">|   - Material     |</span><br><span class="line">|   - Transform    |</span><br><span class="line">+------------------+</span><br></pre></td></tr></table></figure>
+
+<h3 id="设计原则"><a href="#设计原则" class="headerlink" title="设计原则"></a>设计原则</h3><ul>
+<li><strong>关注点分离</strong>：<code>SDLApp</code> 只处理窗口和输入，<code>Scene</code> 专注于渲染逻辑。</li>
+<li><strong>松耦合</strong>：通过回调机制连接 <code>SDLApp</code> 和 <code>Scene</code>，避免直接依赖。</li>
+<li><strong>可扩展性</strong>：使用 YAML 配置文件加载场景，支持动态修改。</li>
+<li><strong>简洁性</strong>：保持接口清晰，代码易于维护和扩展。</li>
+</ul>
+<h2 id="组件设计与实现"><a href="#组件设计与实现" class="headerlink" title="组件设计与实现"></a>组件设计与实现</h2><h3 id="1-SDLApp：窗口与渲染循环"><a href="#1-SDLApp：窗口与渲染循环" class="headerlink" title="1. SDLApp：窗口与渲染循环"></a>1. SDLApp：窗口与渲染循环</h3><p><code>SDLApp</code> 是应用的入口，负责初始化 SDL、创建窗口、管理渲染循环和处理输入事件。其核心职责包括：</p>
+<ul>
+<li>初始化 SDL 窗口和渲染器。</li>
+<li>创建流式纹理（<code>SDL_Texture</code>）用于显示帧缓冲区。</li>
+<li>运行主循环，处理事件、更新 FPS 和显示渲染结果。</li>
+<li>通过回调与 <code>Scene</code> 交互，获取渲染后的帧缓冲区。</li>
+</ul>
+<h4 id="关键代码"><a href="#关键代码" class="headerlink" title="关键代码"></a>关键代码</h4><p><code>SDLApp</code> 的头文件定义如下：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">class</span> <span class="title class_">SDLApp</span> &#123;</span><br><span class="line"><span class="keyword">public</span>:</span><br><span class="line">    <span class="built_in">SDLApp</span>(<span class="type">int</span> width, <span class="type">int</span> height, <span class="type">const</span> std::string&amp; title);</span><br><span class="line">    ~<span class="built_in">SDLApp</span>();</span><br><span class="line">    <span class="function"><span class="type">bool</span> <span class="title">initialize</span><span class="params">()</span></span>;</span><br><span class="line">    <span class="function"><span class="type">void</span> <span class="title">run</span><span class="params">(<span class="type">const</span> std::function&lt;<span class="type">const</span> Framebuffer&amp;(<span class="type">float</span>)&gt;&amp; renderCallback)</span></span>;</span><br><span class="line">    <span class="function"><span class="type">void</span> <span class="title">updateTextureFromFramebuffer</span><span class="params">(<span class="type">const</span> Framebuffer&amp; framebuffer)</span></span>;</span><br><span class="line">    <span class="function">SDL_Renderer* <span class="title">getRenderer</span><span class="params">()</span></span>;</span><br><span class="line"></span><br><span class="line"><span class="keyword">private</span>:</span><br><span class="line">    <span class="type">int</span> width;</span><br><span class="line">    <span class="type">int</span> height;</span><br><span class="line">    std::string title;</span><br><span class="line">    SDL_Window* window;</span><br><span class="line">    SDL_Renderer* sdlRenderer;</span><br><span class="line">    SDL_Texture* framebufferTexture;</span><br><span class="line">    <span class="type">bool</span> quit;</span><br><span class="line">    <span class="type">float</span> deltaTime;</span><br><span class="line">    <span class="type">int</span> frameCount;</span><br><span class="line">    <span class="type">float</span> fps;</span><br><span class="line">    Uint32 lastFrameTime;</span><br><span class="line">    Uint32 fpsUpdateTimer;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="type">void</span> <span class="title">handleEvents</span><span class="params">()</span></span>;</span><br><span class="line">    <span class="function"><span class="type">void</span> <span class="title">updateFPS</span><span class="params">()</span></span>;</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+<p>run 方法实现了主循环，调用渲染回调获取帧缓冲区并更新显示：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">void</span> <span class="title">SDLApp::run</span><span class="params">(<span class="type">const</span> std::function&lt;Framebuffer&amp;(<span class="type">float</span>)&gt;&amp; renderCallback)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">while</span> (!quit) &#123;</span><br><span class="line">        <span class="built_in">handleEvents</span>();</span><br><span class="line">        <span class="built_in">updateFPS</span>();</span><br><span class="line">        Framebuffer&amp; framebuffer = <span class="built_in">renderCallback</span>(deltaTime);</span><br><span class="line">        <span class="built_in">updateTextureFromFramebuffer</span>(framebuffer);</span><br><span class="line">        <span class="built_in">SDL_RenderClear</span>(sdlRenderer);</span><br><span class="line">        <span class="built_in">SDL_RenderCopy</span>(sdlRenderer, <span class="literal">nullptr</span>, <span class="literal">nullptr</span>, <span class="literal">nullptr</span>);</span><br><span class="line">        <span class="built_in">SDL_RenderPresent</span>(sdlRenderer);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>updateTextureFromFramebuffer 将帧缓冲区的像素数据复制到 SDL 纹理：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">void</span> <span class="title">SDLApp::updateTextureFromFramebuffer</span><span class="params">(Framebuffer&amp; framebuffer)</span> </span>&#123;</span><br><span class="line">    <span class="type">void</span>* texturePixels;</span><br><span class="line">    <span class="type">int</span> pitch;</span><br><span class="line">    <span class="keyword">if</span> (<span class="built_in">SDL_LockTexture</span>(framebufferTexture, <span class="literal">NULL</span>, &amp;texturePixels, &amp;pitch) != <span class="number">0</span>) &#123;</span><br><span class="line">        std::cerr &lt;&lt; <span class="string">&quot;SDL_LockTexture failed: &quot;</span> &lt;&lt; <span class="built_in">SDL_GetError</span>() &lt;&lt; std::endl;</span><br><span class="line">        <span class="keyword">return</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    Uint8* dstPixels = <span class="built_in">static_cast</span>&lt;Uint8*&gt;(texturePixels);</span><br><span class="line">    <span class="keyword">auto</span>&amp; pixels = framebuffer.<span class="built_in">getPixels</span>();</span><br><span class="line">    <span class="keyword">for</span> (<span class="type">int</span> y = <span class="number">0</span>; y &lt; height; ++y) &#123;</span><br><span class="line">        <span class="keyword">for</span> (<span class="type">int</span> x = <span class="number">0</span>; x &lt; width; ++x) &#123;</span><br><span class="line">            <span class="type">int</span> framebufferY = y;</span><br><span class="line">            <span class="type">const</span> vec3f&amp; color = pixels[framebufferY * width + x];</span><br><span class="line">            Uint8* dstPixel = dstPixels + y * pitch + x * <span class="number">3</span>;</span><br><span class="line">            dstPixel[<span class="number">0</span>] = <span class="built_in">static_cast</span>&lt;Uint8&gt;(std::<span class="built_in">max</span>(<span class="number">0.0f</span>, std::<span class="built_in">min</span>(<span class="number">255.0f</span>, std::<span class="built_in">round</span>(color.x * <span class="number">255.0f</span>))));</span><br><span class="line">            dstPixel[<span class="number">1</span>] = <span class="built_in">static_cast</span>&lt;Uint8&gt;(std::<span class="built_in">max</span>(<span class="number">0.0f</span>, std::<span class="built_in">min</span>(<span class="number">255.0f</span>, std::<span class="built_in">round</span>(color.y * <span class="number">255.0f</span>))));</span><br><span class="line">            dstPixel[<span class="number">2</span>] = <span class="built_in">static_cast</span>&lt;Uint8&gt;(std::<span class="built_in">max</span>(<span class="number">0.0f</span>, std::<span class="built_in">min</span>(<span class="number">255.0f</span>, std::<span class="built_in">round</span>(color.z * <span class="number">255.0f</span>))));</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="built_in">SDL_UnlockTexture</span>(framebufferTexture);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>设计亮点</p>
+<ol>
+<li>回调机制：通过 std::function&lt;Framebuffer&amp;(float)&gt; 解耦 SDLApp 和渲染逻辑，允许任意组件提供帧缓冲区。</li>
+<li>事件封装：handleEvents 和 updateFPS 是私有方法，仅在 run 中调用，确保外部无法误用。</li>
+<li>FPS 显示：每秒更新窗口标题，显示实时帧率，方便性能监控。</li>
+</ol>
+<h3 id="2-Scene：场景管理与渲染"><a href="#2-Scene：场景管理与渲染" class="headerlink" title="2. Scene：场景管理与渲染"></a>2. Scene：场景管理与渲染</h3><p>Scene 负责管理渲染相关的数据和逻辑，包括帧缓冲区、渲染器、相机、光源和场景对象。它通过 YAML 配置文件加载场景，支持动态模型、材质和动画。</p>
+<h4 id="数据结构"><a href="#数据结构" class="headerlink" title="数据结构"></a>数据结构</h4><p>Scene 使用 SceneObject 结构体表示场景中的对象：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">struct</span> <span class="title class_">SceneObject</span> &#123;</span><br><span class="line">    Model model;</span><br><span class="line">    Material material;</span><br><span class="line">    Transform transform;</span><br><span class="line">    <span class="keyword">struct</span> <span class="title class_">Animation</span> &#123;</span><br><span class="line">        <span class="keyword">enum class</span> <span class="title class_">Type</span> &#123; None, RotateY &#125; type = Type::None;</span><br><span class="line">        <span class="type">float</span> speed = <span class="number">0.0f</span>;</span><br><span class="line">    &#125; animation;</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+<p>Scene 类定义如下：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">class</span> <span class="title class_">Scene</span> &#123;</span><br><span class="line"><span class="keyword">public</span>:</span><br><span class="line">    <span class="built_in">Scene</span>(<span class="type">int</span> width, <span class="type">int</span> height);</span><br><span class="line">    <span class="function"><span class="type">bool</span> <span class="title">loadFromYAML</span><span class="params">(<span class="type">const</span> std::string&amp; filename)</span></span>;</span><br><span class="line">    <span class="function"><span class="type">void</span> <span class="title">update</span><span class="params">(<span class="type">float</span> deltaTime)</span></span>;</span><br><span class="line">    <span class="function"><span class="type">void</span> <span class="title">render</span><span class="params">()</span></span>;</span><br><span class="line">    <span class="function">Framebuffer&amp; <span class="title">getFramebuffer</span><span class="params">()</span></span>;</span><br><span class="line"></span><br><span class="line"><span class="keyword">private</span>:</span><br><span class="line">    Framebuffer framebuffer;</span><br><span class="line">    Renderer renderer;</span><br><span class="line">    Camera camera;</span><br><span class="line">    std::vector&lt;Light&gt; lights;</span><br><span class="line">    std::vector&lt;SceneObject&gt; objects;</span><br><span class="line">    <span class="function"><span class="type">void</span> <span class="title">initializeDefaultScene</span><span class="params">()</span></span>;</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+<h4 id="YAML-场景加载"><a href="#YAML-场景加载" class="headerlink" title="YAML 场景加载"></a>YAML 场景加载</h4><p>场景通过 YAML 文件定义，包含相机、光源和对象。例如：</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">camera:</span></span><br><span class="line">  <span class="attr">position:</span> [<span class="number">0</span>, <span class="number">1</span>, <span class="number">3</span>]</span><br><span class="line">  <span class="attr">target:</span> [<span class="number">0</span>, <span class="number">0</span>, <span class="number">0</span>]</span><br><span class="line">  <span class="attr">up:</span> [<span class="number">0</span>, <span class="number">1</span>, <span class="number">0</span>]</span><br><span class="line">  <span class="attr">fov:</span> <span class="number">45.0</span></span><br><span class="line">  <span class="attr">near:</span> <span class="number">0.1</span></span><br><span class="line">  <span class="attr">far:</span> <span class="number">100.0</span></span><br><span class="line"><span class="attr">lights:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="attr">type:</span> <span class="string">directional</span></span><br><span class="line">    <span class="attr">direction:</span> [<span class="number">0.707</span>, <span class="number">0.0</span>, <span class="number">-0.707</span>]</span><br><span class="line">    <span class="attr">color:</span> [<span class="number">1.0</span>, <span class="number">1.0</span>, <span class="number">1.0</span>]</span><br><span class="line">    <span class="attr">intensity:</span> <span class="number">1.0</span></span><br><span class="line"><span class="attr">objects:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">head</span></span><br><span class="line">    <span class="attr">model:</span> <span class="string">resources/obj/african_head.obj</span></span><br><span class="line">    <span class="attr">material:</span></span><br><span class="line">      <span class="attr">shader:</span> <span class="string">blinn_phong</span></span><br><span class="line">      <span class="attr">diffuse_texture:</span> <span class="string">resources/diffuse/african_head_diffuse.tga</span></span><br><span class="line">      <span class="attr">normal_texture:</span> <span class="string">resources/normal_tangent/african_head_nm_tangent.tga</span></span><br><span class="line">      <span class="attr">specular_texture:</span> <span class="string">resources/spec/african_head_spec.tga</span></span><br><span class="line">    <span class="attr">transform:</span></span><br><span class="line">      <span class="attr">position:</span> [<span class="number">0.0</span>, <span class="number">0.0</span>, <span class="number">0.0</span>]</span><br><span class="line">      <span class="attr">rotation:</span> [<span class="number">0.0</span>, <span class="number">0.0</span>, <span class="number">0.0</span>]</span><br><span class="line">      <span class="attr">scale:</span> [<span class="number">1.0</span>, <span class="number">1.0</span>, <span class="number">1.0</span>]</span><br><span class="line">      <span class="attr">animation:</span></span><br><span class="line">        <span class="attr">type:</span> <span class="string">rotate_y</span></span><br><span class="line">        <span class="attr">speed:</span> <span class="number">30.0</span></span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<p>loadFromYAML 方法解析 YAML 文件，初始化相机、光源和对象：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">bool</span> <span class="title">Scene::loadFromYAML</span><span class="params">(<span class="type">const</span> std::string&amp; filename)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">        YAML::Node config = YAML::<span class="built_in">LoadFile</span>(filename);</span><br><span class="line">        <span class="comment">// Load camera</span></span><br><span class="line">        <span class="keyword">auto</span> cameraNode = config[<span class="string">&quot;camera&quot;</span>];</span><br><span class="line">        <span class="keyword">if</span> (cameraNode) &#123;</span><br><span class="line">            vec3f position = cameraNode[<span class="string">&quot;position&quot;</span>].as&lt;std::vector&lt;<span class="type">float</span>&gt;&gt;();</span><br><span class="line">            vec3f target = cameraNode[<span class="string">&quot;target&quot;</span>].as&lt;std::vector&lt;<span class="type">float</span>&gt;&gt;();</span><br><span class="line">            vec3f up = cameraNode[<span class="string">&quot;up&quot;</span>].as&lt;std::vector&lt;<span class="type">float</span>&gt;&gt;();</span><br><span class="line">            camera = <span class="built_in">Camera</span>(position, target, up);</span><br><span class="line">            camera.<span class="built_in">setPerspective</span>(</span><br><span class="line">                cameraNode[<span class="string">&quot;fov&quot;</span>].<span class="built_in">as</span>&lt;<span class="type">float</span>&gt;(),</span><br><span class="line">                <span class="built_in">static_cast</span>&lt;<span class="type">float</span>&gt;(framebuffer.<span class="built_in">getWidth</span>()) / framebuffer.<span class="built_in">getHeight</span>(),</span><br><span class="line">                cameraNode[<span class="string">&quot;near&quot;</span>].<span class="built_in">as</span>&lt;<span class="type">float</span>&gt;(),</span><br><span class="line">                cameraNode[<span class="string">&quot;far&quot;</span>].<span class="built_in">as</span>&lt;<span class="type">float</span>&gt;()</span><br><span class="line">            );</span><br><span class="line">            renderer.<span class="built_in">setCamera</span>(camera);</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="comment">// Load lights</span></span><br><span class="line">        lights.<span class="built_in">clear</span>();</span><br><span class="line">        <span class="keyword">auto</span> lightsNode = config[<span class="string">&quot;lights&quot;</span>];</span><br><span class="line">        <span class="keyword">if</span> (lightsNode) &#123;</span><br><span class="line">            <span class="keyword">for</span> (<span class="type">const</span> <span class="keyword">auto</span>&amp; lightNode : lightsNode) &#123;</span><br><span class="line">                Light light;</span><br><span class="line">                std::string type = lightNode[<span class="string">&quot;type&quot;</span>].<span class="built_in">as</span>&lt;std::string&gt;();</span><br><span class="line">                <span class="keyword">if</span> (type == <span class="string">&quot;directional&quot;</span>) light.type = LightType::DIRECTIONAL;</span><br><span class="line">                <span class="keyword">else</span> <span class="keyword">if</span> (type == <span class="string">&quot;point&quot;</span>) light.type = LightType::POINT;</span><br><span class="line">                <span class="keyword">else</span> <span class="keyword">continue</span>;</span><br><span class="line">                light.color = lightNode[<span class="string">&quot;color&quot;</span>].as&lt;std::vector&lt;<span class="type">float</span>&gt;&gt;();</span><br><span class="line">                light.intensity = lightNode[<span class="string">&quot;intensity&quot;</span>].<span class="built_in">as</span>&lt;<span class="type">float</span>&gt;();</span><br><span class="line">                <span class="keyword">if</span> (light.type == LightType::DIRECTIONAL) &#123;</span><br><span class="line">                    light.direction = <span class="built_in">vec3f</span>(lightNode[<span class="string">&quot;direction&quot;</span>].as&lt;std::vector&lt;<span class="type">float</span>&gt;&gt;()).<span class="built_in">normalized</span>();</span><br><span class="line">                &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">                    light.position = lightNode[<span class="string">&quot;position&quot;</span>].as&lt;std::vector&lt;<span class="type">float</span>&gt;&gt;();</span><br><span class="line">                &#125;</span><br><span class="line">                lights.<span class="built_in">push_back</span>(light);</span><br><span class="line">            &#125;</span><br><span class="line">            renderer.<span class="built_in">setLights</span>(lights);</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="comment">// Load objects</span></span><br><span class="line">        objects.<span class="built_in">clear</span>();</span><br><span class="line">        <span class="keyword">auto</span> objectsNode = config[<span class="string">&quot;objects&quot;</span>];</span><br><span class="line">        <span class="keyword">if</span> (objectsNode) &#123;</span><br><span class="line">            <span class="keyword">for</span> (<span class="type">const</span> <span class="keyword">auto</span>&amp; objNode : objectsNode) &#123;</span><br><span class="line">                SceneObject obj;</span><br><span class="line">                std::string modelPath = objNode[<span class="string">&quot;model&quot;</span>].<span class="built_in">as</span>&lt;std::string&gt;();</span><br><span class="line">                <span class="keyword">if</span> (!obj.model.<span class="built_in">loadFromObj</span>(modelPath)) &#123;</span><br><span class="line">                    std::cerr &lt;&lt; <span class="string">&quot;Failed to load model: &quot;</span> &lt;&lt; modelPath &lt;&lt; std::endl;</span><br><span class="line">                    <span class="keyword">continue</span>;</span><br><span class="line">                &#125;</span><br><span class="line">                <span class="keyword">auto</span> matNode = objNode[<span class="string">&quot;material&quot;</span>];</span><br><span class="line">                obj.material = <span class="built_in">Material</span>(std::<span class="built_in">make_shared</span>&lt;BlinnPhongShader&gt;());</span><br><span class="line">                <span class="keyword">if</span> (matNode[<span class="string">&quot;diffuse_texture&quot;</span>]) &#123;</span><br><span class="line">                    obj.material.<span class="built_in">loadDiffuseTexture</span>(matNode[<span class="string">&quot;diffuse_texture&quot;</span>].<span class="built_in">as</span>&lt;std::string&gt;());</span><br><span class="line">                &#125;</span><br><span class="line">                <span class="keyword">if</span> (matNode[<span class="string">&quot;normal_texture&quot;</span>]) &#123;</span><br><span class="line">                    obj.material.<span class="built_in">loadNormalTexture</span>(matNode[<span class="string">&quot;normal_texture&quot;</span>].<span class="built_in">as</span>&lt;std::string&gt;());</span><br><span class="line">                &#125;</span><br><span class="line">                <span class="keyword">if</span> (matNode[<span class="string">&quot;specular_texture&quot;</span>]) &#123;</span><br><span class="line">                    obj.material.<span class="built_in">loadSpecularTexture</span>(matNode[<span class="string">&quot;specular_texture&quot;</span>].<span class="built_in">as</span>&lt;std::string&gt;());</span><br><span class="line">                &#125;</span><br><span class="line">                <span class="keyword">auto</span> transformNode = objNode[<span class="string">&quot;transform&quot;</span>];</span><br><span class="line">                <span class="keyword">if</span> (transformNode) &#123;</span><br><span class="line">                    <span class="keyword">if</span> (transformNode[<span class="string">&quot;position&quot;</span>]) &#123;</span><br><span class="line">                        obj.transform.<span class="built_in">setPosition</span>(transformNode[<span class="string">&quot;position&quot;</span>].as&lt;std::vector&lt;<span class="type">float</span>&gt;&gt;());</span><br><span class="line">                    &#125;</span><br><span class="line">                    <span class="keyword">if</span> (transformNode[<span class="string">&quot;rotation&quot;</span>]) &#123;</span><br><span class="line">                        obj.transform.<span class="built_in">setRotationEulerZYX</span>(transformNode[<span class="string">&quot;rotation&quot;</span>].as&lt;std::vector&lt;<span class="type">float</span>&gt;&gt;());</span><br><span class="line">                    &#125;</span><br><span class="line">                    <span class="keyword">if</span> (transformNode[<span class="string">&quot;scale&quot;</span>]) &#123;</span><br><span class="line">                        obj.transform.<span class="built_in">setScale</span>(transformNode[<span class="string">&quot;scale&quot;</span>].as&lt;std::vector&lt;<span class="type">float</span>&gt;&gt;());</span><br><span class="line">                    &#125;</span><br><span class="line">                &#125;</span><br><span class="line">                <span class="keyword">auto</span> animNode = transformNode[<span class="string">&quot;animation&quot;</span>];</span><br><span class="line">                <span class="keyword">if</span> (animNode &amp;&amp; animNode[<span class="string">&quot;type&quot;</span>]) &#123;</span><br><span class="line">                    std::string animType = animNode[<span class="string">&quot;type&quot;</span>].<span class="built_in">as</span>&lt;std::string&gt;();</span><br><span class="line">                    <span class="keyword">if</span> (animType == <span class="string">&quot;rotate_y&quot;</span>) &#123;</span><br><span class="line">                        obj.animation.type = SceneObject::Animation::Type::RotateY;</span><br><span class="line">                        obj.animation.speed = animNode[<span class="string">&quot;speed&quot;</span>].<span class="built_in">as</span>&lt;<span class="type">float</span>&gt;();</span><br><span class="line">                    &#125;</span><br><span class="line">                &#125;</span><br><span class="line">                objects.<span class="built_in">push_back</span>(obj);</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">true</span>;</span><br><span class="line">    &#125; <span class="built_in">catch</span> (<span class="type">const</span> YAML::Exception&amp; e) &#123;</span><br><span class="line">        std::cerr &lt;&lt; <span class="string">&quot;Error parsing YAML file: &quot;</span> &lt;&lt; e.<span class="built_in">what</span>() &lt;&lt; std::endl;</span><br><span class="line">        <span class="built_in">initializeDefaultScene</span>();</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">false</span>;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h4 id="设计亮点"><a href="#设计亮点" class="headerlink" title="设计亮点"></a>设计亮点</h4><ul>
+<li><p>泛化场景：通过 std::vector<SceneObject> 管理任意数量的模型，取代硬编码的特定模型。</SceneObject></p>
+</li>
+<li><p>动态加载：YAML 文件定义场景，易于修改和扩展，无需更改代码。</p>
+</li>
+<li><p>动画支持：通过 Animation 结构体实现简单的旋转动画，可扩展到更多类型。</p>
+</li>
+</ul>
+<h3 id="3-其他组件"><a href="#3-其他组件" class="headerlink" title="3. 其他组件"></a>3. 其他组件</h3><ul>
+<li><p>Renderer：执行光栅化管线，处理顶点变换、裁剪、光栅化和片段着色。支持 Blinn-Phong 着色模型。</p>
+</li>
+<li><p>Framebuffer：存储渲染结果的像素和深度数据，支持颜色清除和垂直翻转（适配 SDL 坐标系）。</p>
+</li>
+<li><p>Camera：提供视角变换矩阵，支持透视投影。</p>
+</li>
+<li><p>Light：支持方向光和点光，传递给着色器。</p>
+</li>
+<li><p>Model 和 Material：加载 OBJ 模型和 TGA 纹理，支持法线贴图和镜面贴图。</p>
+</li>
+</ul>
+<p>这些组件与 Scene 紧密协作，共同完成渲染任务。</p>
+<h2 id="集成与运行"><a href="#集成与运行" class="headerlink" title="集成与运行"></a>集成与运行</h2><p>main.cpp 负责初始化和启动应用：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">int</span> <span class="title">main</span><span class="params">(<span class="type">int</span> argc, <span class="type">char</span>* argv[])</span> </span>&#123;</span><br><span class="line">    <span class="type">const</span> <span class="type">int</span> width = <span class="number">800</span>;</span><br><span class="line">    <span class="type">const</span> <span class="type">int</span> height = <span class="number">800</span>;</span><br><span class="line">    <span class="function">SDLApp <span class="title">app</span><span class="params">(width, height, <span class="string">&quot;Software Rasterizer&quot;</span>)</span></span>;</span><br><span class="line">    <span class="keyword">if</span> (!app.<span class="built_in">initialize</span>()) &#123;</span><br><span class="line">        std::cerr &lt;&lt; <span class="string">&quot;Failed to initialize SDLApp&quot;</span> &lt;&lt; std::endl;</span><br><span class="line">        <span class="keyword">return</span> <span class="number">1</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="function">Scene <span class="title">scene</span><span class="params">(width, height)</span></span>;</span><br><span class="line">    <span class="keyword">if</span> (!scene.<span class="built_in">loadFromYAML</span>(<span class="string">&quot;scenes/scene.yaml&quot;</span>)) &#123;</span><br><span class="line">        std::cerr &lt;&lt; <span class="string">&quot;Failed to load scene, using default&quot;</span> &lt;&lt; std::endl;</span><br><span class="line">    &#125;</span><br><span class="line">    app.<span class="built_in">run</span>([&amp;scene](<span class="type">float</span> deltaTime) -&gt; Framebuffer&amp; &#123;</span><br><span class="line">        scene.<span class="built_in">update</span>(deltaTime);</span><br><span class="line">        scene.<span class="built_in">render</span>();</span><br><span class="line">        <span class="keyword">return</span> scene.<span class="built_in">getFramebuffer</span>();</span><br><span class="line">    &#125;);</span><br><span class="line">    std::cout &lt;&lt; <span class="string">&quot;Exiting...&quot;</span> &lt;&lt; std::endl;</span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="构建与依赖"><a href="#构建与依赖" class="headerlink" title="构建与依赖"></a>构建与依赖</h2><p>使用 CMake 管理构建，依赖 SDL2 和 yaml-cpp：</p>
+<figure class="highlight cmake"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">cmake_minimum_required</span>(VERSION <span class="number">3.10</span>)</span><br><span class="line"><span class="keyword">project</span>(SoftRasterizer)</span><br><span class="line"><span class="keyword">set</span>(CMAKE_CXX_STANDARD <span class="number">17</span>)</span><br><span class="line"><span class="keyword">find_package</span>(SDL2 REQUIRED)</span><br><span class="line"><span class="keyword">add_subdirectory</span>(thirdparty/yaml-cpp)</span><br><span class="line"><span class="keyword">file</span>(GLOB SOURCES <span class="string">&quot;src/*.cpp&quot;</span> <span class="string">&quot;src/core/*.cpp&quot;</span> <span class="string">&quot;src/io/*.cpp&quot;</span> <span class="string">&quot;src/math/*.cpp&quot;</span>)</span><br><span class="line"><span class="keyword">add_executable</span>(SoftRasterizer <span class="variable">$&#123;SOURCES&#125;</span>)</span><br><span class="line"><span class="keyword">target_link_libraries</span>(SoftRasterizer PRIVATE SDL2::SDL2 SDL2::SDL2main yaml-cpp)</span><br><span class="line"><span class="keyword">target_include_directories</span>(SoftRasterizer PRIVATE <span class="keyword">include</span> <span class="variable">$&#123;SDL2_INCLUDE_DIRS&#125;</span>)</span><br><span class="line"><span class="keyword">add_custom_command</span>(<span class="keyword">TARGET</span> SoftRasterizer POST_BUILD</span><br><span class="line">    <span class="keyword">COMMAND</span> <span class="variable">$&#123;CMAKE_COMMAND&#125;</span> -E copy_directory <span class="variable">$&#123;CMAKE_SOURCE_DIR&#125;</span>/resources <span class="variable">$&#123;CMAKE_BINARY_DIR&#125;</span>/bin/resources</span><br><span class="line">    <span class="keyword">COMMAND</span> <span class="variable">$&#123;CMAKE_COMMAND&#125;</span> -E copy_if_different <span class="variable">$&#123;CMAKE_SOURCE_DIR&#125;</span>/scenes/scene.yaml <span class="variable">$&#123;CMAKE_BINARY_DIR&#125;</span>/bin/scenes/scene.yaml</span><br><span class="line">)</span><br></pre></td></tr></table></figure>
+
+<h2 id="实现效果"><a href="#实现效果" class="headerlink" title="实现效果"></a>实现效果</h2><p>运行后，程序加载 scene.yaml，渲染非洲头模型及其眼睛，应用 Blinn-Phong 着色和纹理。模型以每秒 30 度的速度绕 Y 轴旋转，窗口标题显示实时 FPS。效果如下：</p>
+<ul>
+<li>渲染质量：支持法线贴图、镜面高光，视觉效果逼真。</li>
+<li>性能：软件光栅化在 800x800 分辨率下流畅运行，FPS ~&#x3D; 30。</li>
+</ul>
+<h2 id="总结与展望"><a href="#总结与展望" class="headerlink" title="总结与展望"></a>总结与展望</h2><p>通过模块化的 SDLApp 和 Scene 设计，我们实现了一个灵活的实时渲染器。SDLApp 封装了窗口和输入逻辑，Scene 通过 YAML 提供动态场景管理，回调机制确保了两者的松耦合。以下是未来可改进的方向：</p>
+<ul>
+<li>事件处理：扩展 SDLApp 支持键盘和鼠标输入，实现相机控制。</li>
+<li>多场景支持：允许运行时切换 YAML 文件，加载不同场景。</li>
+<li>渲染优化：添加 SIMD 指令（如 AVX2）加速光栅化。</li>
+<li>更复杂动画：支持关键帧动画或骨骼动画。</li>
+</ul>
+
+<div class="article-footer fs14">
+    <section id="license">
+      <div class="header"><span>License</span></div>
+      <div class="body"><p>本文采用 <a target="_blank" rel="noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0/">署名-非商业性使用-相同方式共享 4.0 国际</a> 许可协议，转载请注明出处。</p>
+</div>
+    </section>
+    </div>
+</article>
+<div class="related-wrap" id="read-next"><section class="body"><div class="item" id="prev"><div class="note">Newer</div><a href="/2025/04/18/ThreadPool/">优化软渲染器：线程池设计与性能提升</a></div><div class="item" id="next"><div class="note">Older</div><a href="/2025/04/15/QUATERNION/">使用四元数和变换类管理对象姿态</a></div></section></div>
+
+
+
+
+
+
+<footer class="page-footer footnote"><hr><div class="text"><p>本站由 <a href="/">AnyaCoder</a> 使用 <a target="_blank" rel="noopener" href="https://github.com/xaoxuu/hexo-theme-stellar/tree/1.29.1">Stellar 1.29.1</a> 主题创建。<br>本博客所有文章除特别声明外，均采用 <a target="_blank" rel="noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0/">CC BY-NC-SA 4.0</a> 许可协议，转载请注明出处。</p>
+</div></footer>
+<div class="main-mask" onclick="sidebar.dismiss()"></div></div><aside class="l_right">
+<div class="widgets">
+
+
+
+<widget class="widget-wrapper toc" id="data-toc" collapse="false"><div class="widget-header dis-select"><span class="name">On This Page</span><a class="cap-action" onclick="sidebar.toggleTOC()" ><svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6h11m-11 6h11m-11 6h11M4 6h1v4m-1 0h2m0 8H4c0-1 2-2 2-3s-1-1.5-2-1"/></svg></a></div><div class="widget-body"><ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#%E4%BD%BF%E7%94%A8-SDL-%E7%AA%97%E5%8F%A3%E5%8C%96%E5%AE%9E%E6%97%B6%E6%B8%B2%E6%9F%93%EF%BC%9A%E8%AE%BE%E8%AE%A1-Scene-%E5%92%8C-SDLApp-%E7%BB%84%E4%BB%B6"><span class="toc-text">使用 SDL 窗口化实时渲染：设计 Scene 和 SDLApp 组件</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E8%83%8C%E6%99%AF%E4%B8%8E%E7%9B%AE%E6%A0%87"><span class="toc-text">背景与目标</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1"><span class="toc-text">架构设计</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E8%AE%BE%E8%AE%A1%E5%8E%9F%E5%88%99"><span class="toc-text">设计原则</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E7%BB%84%E4%BB%B6%E8%AE%BE%E8%AE%A1%E4%B8%8E%E5%AE%9E%E7%8E%B0"><span class="toc-text">组件设计与实现</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#1-SDLApp%EF%BC%9A%E7%AA%97%E5%8F%A3%E4%B8%8E%E6%B8%B2%E6%9F%93%E5%BE%AA%E7%8E%AF"><span class="toc-text">1. SDLApp：窗口与渲染循环</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#%E5%85%B3%E9%94%AE%E4%BB%A3%E7%A0%81"><span class="toc-text">关键代码</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2-Scene%EF%BC%9A%E5%9C%BA%E6%99%AF%E7%AE%A1%E7%90%86%E4%B8%8E%E6%B8%B2%E6%9F%93"><span class="toc-text">2. Scene：场景管理与渲染</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84"><span class="toc-text">数据结构</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#YAML-%E5%9C%BA%E6%99%AF%E5%8A%A0%E8%BD%BD"><span class="toc-text">YAML 场景加载</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E8%AE%BE%E8%AE%A1%E4%BA%AE%E7%82%B9"><span class="toc-text">设计亮点</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#3-%E5%85%B6%E4%BB%96%E7%BB%84%E4%BB%B6"><span class="toc-text">3. 其他组件</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E9%9B%86%E6%88%90%E4%B8%8E%E8%BF%90%E8%A1%8C"><span class="toc-text">集成与运行</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%9E%84%E5%BB%BA%E4%B8%8E%E4%BE%9D%E8%B5%96"><span class="toc-text">构建与依赖</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%AE%9E%E7%8E%B0%E6%95%88%E6%9E%9C"><span class="toc-text">实现效果</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%80%BB%E7%BB%93%E4%B8%8E%E5%B1%95%E6%9C%9B"><span class="toc-text">总结与展望</span></a></li></ol></li></ol></div><div class="widget-footer">
+
+<a class="top" onclick="util.scrollTop()"><svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 12c0-4.714 0-7.071 1.464-8.536C4.93 2 7.286 2 12 2c4.714 0 7.071 0 8.535 1.464C22 4.93 22 7.286 22 12c0 4.714 0 7.071-1.465 8.535C19.072 22 16.714 22 12 22s-7.071 0-8.536-1.465C2 19.072 2 16.714 2 12Z"/><path stroke-linecap="round" stroke-linejoin="round" d="m9 15.5l3-3l3 3m-6-4l3-3l3 3"/></g></svg><span>Scroll to Top</span></a></div></widget>
+</div></aside><div class='float-panel blur'>
+  <button type='button' style='display:none' class='laptop-only rightbar-toggle mobile' onclick='sidebar.rightbar()'>
+    <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6h11m-11 6h11m-11 6h11M4 6h1v4m-1 0h2m0 8H4c0-1 2-2 2-3s-1-1.5-2-1"/></svg>
+  </button>
+  <button type='button' style='display:none' class='mobile-only leftbar-toggle mobile' onclick='sidebar.leftbar()'>
+    <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 11c0-3.771 0-5.657 1.172-6.828C4.343 3 6.229 3 10 3h4c3.771 0 5.657 0 6.828 1.172C22 5.343 22 7.229 22 11v2c0 3.771 0 5.657-1.172 6.828C19.657 21 17.771 21 14 21h-4c-3.771 0-5.657 0-6.828-1.172C2 18.657 2 16.771 2 13z"/><path id="sep" stroke-linecap="round" d="M5.5 10h6m-5 4h4m4.5 7V3"/></g></svg>
+  </button>
+</div>
+</div><div class="scripts">
+<script type="text/javascript">
+  const ctx = {
+    date_suffix: {
+      just: `Just`,
+      min: `minutes ago`,
+      hour: `hours ago`,
+      day: `days ago`,
+    },
+    root : `/`,
+  };
+
+  // required plugins (only load if needs)
+  if (`local_search`) {
+    ctx.search = {};
+    ctx.search.service = `local_search`;
+    if (ctx.search.service == 'local_search') {
+      let service_obj = Object.assign({}, `{"field":"all","path":"/search.json","content":true,"sort":"-date"}`);
+      ctx.search[ctx.search.service] = service_obj;
+    }
+  }
+  const def = {
+    avatar: `https://gcore.jsdelivr.net/gh/cdn-x/placeholder@1.0.12/avatar/round/3442075.svg`,
+    cover: `https://gcore.jsdelivr.net/gh/cdn-x/placeholder@1.0.12/cover/76b86c0226ffd.svg`,
+  };
+  const deps = {
+    jquery: `https://cdn.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.min.js`,
+    marked: `https://cdn.jsdelivr.net/npm/marked@13.0.1/lib/marked.umd.min.js`
+  }
+  
+
+</script>
+
+<script type="text/javascript">
+  const utils = {
+    // 懒加载 css https://github.com/filamentgroup/loadCSS
+    css: (href, before, media, attributes) => {
+      var doc = window.document;
+      var ss = doc.createElement("link");
+      var ref;
+      if (before) {
+        ref = before;
+      } else {
+        var refs = (doc.body || doc.getElementsByTagName("head")[0]).childNodes;
+        ref = refs[refs.length - 1];
+      }
+      var sheets = doc.styleSheets;
+      if (attributes) {
+        for (var attributeName in attributes) {
+          if (attributes.hasOwnProperty(attributeName)) {
+            ss.setAttribute(attributeName, attributes[attributeName]);
+          }
+        }
+      }
+      ss.rel = "stylesheet";
+      ss.href = href;
+      ss.media = "only x";
+      function ready(cb) {
+        if (doc.body) {
+          return cb();
+        }
+        setTimeout(function () {
+          ready(cb);
+        });
+      }
+      ready(function () {
+        ref.parentNode.insertBefore(ss, before ? ref : ref.nextSibling);
+      });
+      var onloadcssdefined = function (cb) {
+        var resolvedHref = ss.href;
+        var i = sheets.length;
+        while (i--) {
+          if (sheets[i].href === resolvedHref) {
+            return cb();
+          }
+        }
+        setTimeout(function () {
+          onloadcssdefined(cb);
+        });
+      };
+      function loadCB() {
+        if (ss.addEventListener) {
+          ss.removeEventListener("load", loadCB);
+        }
+        ss.media = media || "all";
+      }
+      if (ss.addEventListener) {
+        ss.addEventListener("load", loadCB);
+      }
+      ss.onloadcssdefined = onloadcssdefined;
+      onloadcssdefined(loadCB);
+      return ss;
+    },
+
+    js: (src, opt) => new Promise((resolve, reject) => {
+      var script = document.createElement('script');
+      if (src.startsWith('/')){
+        src = ctx.root + src.substring(1);
+      }
+      script.src = src;
+      if (opt) {
+        for (let key of Object.keys(opt)) {
+          script[key] = opt[key]
+        }
+      } else {
+        // 默认异步，如果需要同步，第二个参数传入 {} 即可
+        script.async = true
+      }
+      script.onerror = reject
+      script.onload = script.onreadystatechange = function() {
+        const loadState = this.readyState
+        if (loadState && loadState !== 'loaded' && loadState !== 'complete') return
+        script.onload = script.onreadystatechange = null
+        resolve()
+      }
+      document.head.appendChild(script)
+    }),
+
+    jq: (fn) => {
+      if (typeof jQuery === 'undefined') {
+        utils.js(deps.jquery).then(fn)
+      } else {
+        fn()
+      }
+    },
+    
+    onLoading: (el) => {
+      if (el) {
+        $(el).append('<div class="loading-wrap"><svg xmlns="http://www.w3.org/2000/svg" width="2em" height="2em" preserveAspectRatio="xMidYMid meet" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2"><path stroke-dasharray="60" stroke-dashoffset="60" stroke-opacity=".3" d="M12 3C16.9706 3 21 7.02944 21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3Z"><animate fill="freeze" attributeName="stroke-dashoffset" dur="1.3s" values="60;0"/></path><path stroke-dasharray="15" stroke-dashoffset="15" d="M12 3C16.9706 3 21 7.02944 21 12"><animate fill="freeze" attributeName="stroke-dashoffset" dur="0.3s" values="15;0"/><animateTransform attributeName="transform" dur="1.5s" repeatCount="indefinite" type="rotate" values="0 12 12;360 12 12"/></path></g></svg></div>');
+      }
+    },
+    onLoadSuccess: (el) => {
+      if (el) {
+        $(el).find('.loading-wrap').remove();
+      }
+    },
+    onLoadFailure: (el) => {
+      if (el) {
+        $(el).find('.loading-wrap svg').remove();
+        $(el).find('.loading-wrap').append('<svg xmlns="http://www.w3.org/2000/svg" width="2em" height="2em" preserveAspectRatio="xMidYMid meet" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><path stroke-dasharray="60" stroke-dashoffset="60" d="M12 3L21 20H3L12 3Z"><animate fill="freeze" attributeName="stroke-dashoffset" dur="0.5s" values="60;0"/></path><path stroke-dasharray="6" stroke-dashoffset="6" d="M12 10V14"><animate fill="freeze" attributeName="stroke-dashoffset" begin="0.6s" dur="0.2s" values="6;0"/></path></g><circle cx="12" cy="17" r="1" fill="currentColor" fill-opacity="0"><animate fill="freeze" attributeName="fill-opacity" begin="0.8s" dur="0.4s" values="0;1"/></circle></svg>');
+        $(el).find('.loading-wrap').addClass('error');
+      }
+    },
+    request: (el, url, callback, onFailure) => {
+      let retryTimes = 3;
+      utils.onLoading(el);
+      function req() {
+        return new Promise((resolve, reject) => {
+          let status = 0; // 0 等待 1 完成 2 超时
+          let timer = setTimeout(() => {
+            if (status === 0) {
+              status = 2;
+              timer = null;
+              reject('请求超时');
+              if (retryTimes == 0) {
+                onFailure();
+              }
+            }
+          }, 5000);
+          fetch(url).then(function(response) {
+            if (status !== 2) {
+              clearTimeout(timer);
+              resolve(response);
+              timer = null;
+              status = 1;
+            }
+            if (response.ok) {
+              return response.json();
+            }
+            throw new Error('Network response was not ok.');
+          }).then(function(data) {
+            retryTimes = 0;
+            utils.onLoadSuccess(el);
+            callback(data);
+          }).catch(function(error) {
+            if (retryTimes > 0) {
+              retryTimes -= 1;
+              setTimeout(() => {
+                req();
+              }, 5000);
+            } else {
+              utils.onLoadFailure(el);
+              onFailure();
+            }
+          });
+        });
+      }
+      req();
+    },
+  };
+</script>
+
+<script>
+  const sidebar = {
+    leftbar: () => {
+      if (l_body) {
+        l_body.toggleAttribute('leftbar');
+        l_body.removeAttribute('rightbar');
+      }
+    },
+    rightbar: () => {
+      if (l_body) {
+        l_body.toggleAttribute('rightbar');
+        l_body.removeAttribute('leftbar');
+      }
+    },
+    dismiss: () => {
+      if (l_body) {
+        l_body.removeAttribute('leftbar');
+        l_body.removeAttribute('rightbar');
+      }
+    },
+    toggleTOC: () => {
+      document.querySelector('#data-toc').classList.toggle('collapse');
+    }
+  }
+</script>
+<script type="text/javascript">
+  (() => {
+    const tagSwitchers = document.querySelectorAll('.tag-subtree.parent-tag > a > .tag-switcher-wrapper')
+    for (const tagSwitcher of tagSwitchers) {
+      tagSwitcher.addEventListener('click', (e) => {
+        const parent = e.target.closest('.tag-subtree.parent-tag')
+        parent.classList.toggle('expanded')
+        e.preventDefault()
+      })
+    }
+
+    // Get active tag from query string, then activate it.
+    const urlParams = new URLSearchParams(window.location.search)
+    const activeTag = urlParams.get('tag')
+    if (activeTag) {
+      let tag = document.querySelector(`.tag-subtree[data-tag="${activeTag}"]`)
+      if (tag) {
+        tag.querySelector('a').classList.add('active')
+        
+        while (tag) {
+          tag.classList.add('expanded')
+          tag = tag.parentElement.closest('.tag-subtree.parent-tag')
+        }
+      }
+    }
+  })()
+</script>
+
+
+<!-- required -->
+<script src="/js/main.js?v=1.29.1" defer></script>
+
+<script type="text/javascript">
+  const applyTheme = (theme) => {
+    if (theme === 'auto') {
+      document.documentElement.removeAttribute('data-theme')
+    } else {
+      document.documentElement.setAttribute('data-theme', theme)
+    }
+
+    applyThemeToGiscus(theme)
+  }
+
+  const applyThemeToGiscus = (theme) => {
+    theme = theme === 'auto' ? 'preferred_color_scheme' : theme
+
+    const cmt = document.getElementById('giscus')
+    if (cmt) {
+      // This works before giscus load.
+      cmt.setAttribute('data-theme', theme)
+    }
+
+    const iframe = document.querySelector('#comments > section.giscus > iframe')
+    if (iframe) {
+      // This works after giscus loaded.
+      const src = iframe.src
+      const newSrc = src.replace(/theme=[\w]+/, `theme=${theme}`)
+      iframe.src = newSrc
+    }
+  }
+
+  const switchTheme = () => {
+    // light -> dark -> auto -> light -> ...
+    const currentTheme = document.documentElement.getAttribute('data-theme')
+    let newTheme;
+    switch (currentTheme) {
+      case 'light':
+        newTheme = 'dark'
+        break
+      case 'dark':
+        newTheme = 'auto'
+        break
+      default:
+        newTheme = 'light'
+    }
+    applyTheme(newTheme)
+    window.localStorage.setItem('Stellar.theme', newTheme)
+
+    const messages = {
+      light: `Switched to Light Mode`,
+      dark: `Switched to Dark Mode`,
+      auto: `Switched to Auto Mode`,
+    }
+    hud?.toast?.(messages[newTheme])
+  }
+
+  (() => {
+    // Apply user's preferred theme, if any.
+    const theme = window.localStorage.getItem('Stellar.theme')
+    if (theme !== null) {
+      applyTheme(theme)
+    }
+  })()
+</script>
+
+
+<!-- optional -->
+
+
+
+<script defer>
+  window.addEventListener('DOMContentLoaded', (event) => {
+    ctx.services = Object.assign({}, JSON.parse(`{"mdrender":{"js":"/js/services/mdrender.js"},"siteinfo":{"js":"/js/services/siteinfo.js","api":null},"ghinfo":{"js":"/js/services/ghinfo.js"},"sites":{"js":"/js/services/sites.js"},"friends":{"js":"/js/services/friends.js"},"timeline":{"js":"/js/services/timeline.js"},"fcircle":{"js":"/js/services/fcircle.js"},"weibo":{"js":"/js/services/weibo.js"},"memos":{"js":"/js/services/memos.js"}}`));
+    for (let id of Object.keys(ctx.services)) {
+      const js = ctx.services[id].js;
+      if (id == 'siteinfo') {
+        ctx.cardlinks = document.querySelectorAll('a.link-card[cardlink]');
+        if (ctx.cardlinks?.length > 0) {
+          utils.js(js, { defer: true }).then(function () {
+            setCardLink(ctx.cardlinks);
+          });
+        }
+      } else {
+        const els = document.getElementsByClassName(`ds-${id}`);
+        if (els?.length > 0) {
+          utils.jq(() => {
+            if (id == 'timeline' || 'memos' || 'marked') {
+              utils.js(deps.marked).then(function () {
+                utils.js(js, { defer: true });
+              });
+            } else {
+              utils.js(js, { defer: true });
+            }
+          });
+        }
+      }
+    }
+  });
+</script>
+
+<script>
+  window.addEventListener('DOMContentLoaded', (event) => {
+    ctx.search = {
+      path: `/search.json`,
+    }
+    utils.js('/js/search/local-search.js', { defer: true });
+  });
+</script><script>
+  window.FPConfig = {
+    delay: 0,
+    ignoreKeywords: [],
+    maxRPS: 5,
+    hoverDelay: 25
+  };
+</script>
+<script defer src="https://cdn.jsdelivr.net/npm/flying-pages@2/flying-pages.min.js"></script><script defer src="https://cdn.jsdelivr.net/npm/vanilla-lazyload@19.1.3/dist/lazyload.min.js"></script>
+<script>
+  // https://www.npmjs.com/package/vanilla-lazyload
+  // Set the options globally
+  // to make LazyLoad self-initialize
+  window.lazyLoadOptions = {
+    elements_selector: ".lazy",
+  };
+  // Listen to the initialization event
+  // and get the instance of LazyLoad
+  window.addEventListener(
+    "LazyLoad::Initialized",
+    function (event) {
+      window.lazyLoadInstance = event.detail.instance;
+    },
+    false
+  );
+  document.addEventListener('DOMContentLoaded', function () {
+    window.lazyLoadInstance?.update();
+  });
+</script><script>
+  ctx.fancybox = {
+    selector: `.timenode p>img`,
+    css: `https://cdn.jsdelivr.net/npm/@fancyapps/ui@5.0/dist/fancybox/fancybox.css`,
+    js: `https://cdn.jsdelivr.net/npm/@fancyapps/ui@5.0/dist/fancybox/fancybox.umd.js`
+  };
+  var selector = '[data-fancybox]:not(.error)';
+  if (ctx.fancybox.selector) {
+    selector += `, ${ctx.fancybox.selector}`
+  }
+  var needFancybox = document.querySelectorAll(selector).length !== 0;
+  if (!needFancybox) {
+    const els = document.getElementsByClassName('ds-memos');
+    if (els != undefined && els.length > 0) {
+      needFancybox = true;
+    }
+  }
+  if (needFancybox) {
+    utils.css(ctx.fancybox.css);
+    utils.js(ctx.fancybox.js, { defer: true }).then(function () {
+      Fancybox.bind(selector, {
+        hideScrollbar: false,
+        Thumbs: {
+          autoStart: false,
+        },
+        caption: (fancybox, slide) => {
+          return slide.triggerEl.alt || slide.triggerEl.dataset.caption || null
+        }
+      });
+    })
+  }
+</script>
+<script>
+  window.addEventListener('DOMContentLoaded', (event) => {
+    const swiper_api = document.getElementById('swiper-api');
+    if (swiper_api != undefined) {
+      utils.css(`https://unpkg.com/swiper@10.3.1/swiper-bundle.min.css`);
+      utils.js(`https://unpkg.com/swiper@10.3.1/swiper-bundle.min.js`, { defer: true }).then(function () {
+        const effect = swiper_api.getAttribute('effect') || '';
+        var swiper = new Swiper('.swiper#swiper-api', {
+          slidesPerView: 'auto',
+          spaceBetween: 8,
+          centeredSlides: true,
+          effect: effect,
+          rewind: true,
+          pagination: {
+            el: '.swiper-pagination',
+            clickable: true,
+          },
+          navigation: {
+            nextEl: '.swiper-button-next',
+            prevEl: '.swiper-button-prev',
+          },
+        });
+      })
+    }
+  });
+</script>
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    window.codeElements = document.querySelectorAll('.code');
+    if (window.codeElements.length > 0) {
+      ctx.copycode = {
+        default_text: `Copy`,
+        success_text: `Copied`,
+        toast: `复制成功`,
+      };
+      utils.js('/js/plugins/copycode.js');
+    }
+  });
+</script>
+
+
+<!-- inject -->
+
+</div></body></html>
