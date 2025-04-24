@@ -1,0 +1,694 @@
+
+<!DOCTYPE html><html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="hexo-theme" content="https://github.com/xaoxuu/hexo-theme-stellar/tree/1.29.1" theme-name="Stellar" theme-version="1.29.1">
+  
+  <meta name="generator" content="Hexo 7.3.0">
+  <meta http-equiv='x-dns-prefetch-control' content='on' />
+  
+  <meta name="renderer" content="webkit">
+  <meta name="force-rendering" content="webkit">
+  <meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+  <meta name="HandheldFriendly" content="True" >
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#000">
+  <meta name="theme-color" content="#f9fafb">
+  
+  <title>Mipmap 实现详解：从原理到代码（含数学推导） - Anya's Blog</title>
+
+  
+    <meta name="description" content="在实时渲染中，纹理贴图是赋予模型表面细节的关键技术。然而，当一个带有高分辨率纹理的模型距离摄像机很远，或者以一个倾斜的角度观察时，屏幕上的一个像素可能会对应纹理上的多个纹素（Texel）。如果不进行处理，直接采样会导致严重的摩尔纹（Moiré patterns）和闪烁（Shimmering）现象，即纹理混叠（Texture Aliasing）。 Mipmapping 是解决这一问题的经典技术。其核">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Mipmap 实现详解：从原理到代码（含数学推导）">
+<meta property="og:url" content="http://example.com/2025/04/25/Mipmap/index.html">
+<meta property="og:site_name" content="Anya&#39;s Blog">
+<meta property="og:description" content="在实时渲染中，纹理贴图是赋予模型表面细节的关键技术。然而，当一个带有高分辨率纹理的模型距离摄像机很远，或者以一个倾斜的角度观察时，屏幕上的一个像素可能会对应纹理上的多个纹素（Texel）。如果不进行处理，直接采样会导致严重的摩尔纹（Moiré patterns）和闪烁（Shimmering）现象，即纹理混叠（Texture Aliasing）。 Mipmapping 是解决这一问题的经典技术。其核">
+<meta property="og:locale" content="en_US">
+<meta property="article:published_time" content="2025-04-24T16:00:00.000Z">
+<meta property="article:modified_time" content="2025-04-24T16:53:24.109Z">
+<meta property="article:author" content="AnyaCoder">
+<meta property="article:tag" content="Rendering">
+<meta property="article:tag" content="Graphics">
+<meta property="article:tag" content="Mipmap">
+<meta property="article:tag" content="Texture Filtering">
+<meta property="article:tag" content="LOD">
+<meta name="twitter:card" content="summary">
+  
+  
+  
+  <meta name="keywords" content="Rendering,Graphics,Mipmap,Texture Filtering,LOD">
+
+  <!-- feed -->
+  
+
+  <link rel="stylesheet" href="/css/main.css?v=1.29.1">
+
+  
+    <link rel="shortcut icon" href="/%5Bobject%20Object%5D">
+  
+
+  
+
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/lxgw-wenkai-screen-web/style.css" />
+</head>
+<body>
+
+<div class="l_body s:aa content tech" id="start" layout="post" ><aside class="l_left"><div class="leftbar-container">
+
+
+<header class="header"><div class="logo-wrap"><a class="avatar" href="/about/"><div class="bg" style="opacity:0;background-image:url(https://gcore.jsdelivr.net/gh/cdn-x/placeholder@1.0.12/avatar/round/rainbow64@3x.webp);"></div><img no-lazy class="avatar" src="https://cdn.jsdelivr.net/gh/nexmoe/nexmoe.github.io@latest/images/avatar.png" onerror="javascript:this.classList.add('error');this.src='https://gcore.jsdelivr.net/gh/cdn-x/placeholder@1.0.12/image/2659360.svg';"></a><a class="title" href="/"><div class="main" ff="title">Anya's Blog</div></a></div></header>
+
+<div class="nav-area">
+<div class="search-wrapper" id="search-wrapper"><form class="search-form"><a class="search-button" onclick="document.getElementById(&quot;search-input&quot;).focus();"><svg t="1705074644177" viewBox="0 0 1025 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="1560" width="200" height="200"><path d="M1008.839137 935.96571L792.364903 719.491476a56.783488 56.783488 0 0 0-80.152866 0 358.53545 358.53545 0 1 1 100.857314-335.166073 362.840335 362.840335 0 0 1-3.689902 170.145468 51.248635 51.248635 0 1 0 99.217358 26.444296 462.057693 462.057693 0 1 0-158.255785 242.303546l185.930047 185.725053a51.248635 51.248635 0 0 0 72.568068 0 51.248635 51.248635 0 0 0 0-72.978056z" p-id="1561"></path><path d="M616.479587 615.969233a50.428657 50.428657 0 0 0-61.498362-5.534852 174.655348 174.655348 0 0 1-177.525271 3.484907 49.403684 49.403684 0 0 0-58.833433 6.76482l-3.074918 2.869923a49.403684 49.403684 0 0 0 8.609771 78.10292 277.767601 277.767601 0 0 0 286.992355-5.739847 49.403684 49.403684 0 0 0 8.404776-76.667958z" p-id="1562"></path></svg></a><input type="text" class="search-input" id="search-input" placeholder="Search"></form><div id="search-result"></div><div class="search-no-result">No Results!</div></div>
+
+
+<nav class="menu dis-select"></nav>
+</div>
+<div class="widgets">
+
+
+<widget class="widget-wrapper post-list"><div class="widget-header dis-select"><span class="name">Recent Update</span></div><div class="widget-body fs14"><a class="item title" href="/2025/04/24/FPS_Camera_Movement_Guide/"><span class="title">Implementing FPS Camera Movement in a 3D Application</span></a><a class="item title" href="/2025/04/25/Mipmap/"><span class="title">Mipmap 实现详解：从原理到代码（含数学推导）</span></a><a class="item title" href="/2025/04/18/ThreadPool/"><span class="title">优化软渲染器：线程池设计与性能提升</span></a><a class="item title" href="/2025/04/16/SDL/"><span class="title">使用 SDL 窗口化实时渲染：设计 Scene 和 SDLApp 组件</span></a><a class="item title" href="/2025/04/15/MATMUL_ACCELERATION/"><span class="title">加速小型矩阵乘法：3x3与4x4优化</span></a><a class="item title" href="/2025/04/15/QUATERNION/"><span class="title">使用四元数和变换类管理对象姿态</span></a><a class="item title" href="/2025/04/13/TEXTURE-MAPPINGS/"><span class="title">增强真实感：为软渲染器添加 AO、高光和光泽度贴图</span></a><a class="item title" href="/2025/04/04/Z-BUFFER-IMPLEMENTATION/"><span class="title">Z-Buffer 深度缓冲的实现</span></a><a class="item title" href="/2025/04/06/RENDERING-PIPELINE/"><span class="title">渲染管线简介</span></a><a class="item title" href="/2025/04/05/PERSPECTIVE-PROJECTION/"><span class="title">透视投影</span></a></div></widget>
+</div>
+
+</div></aside><div class="l_main" id="main">
+
+
+
+
+
+<div class="article banner top">
+  <div class="content">
+    <div class="top bread-nav footnote"><div class="left"><div class="flex-row" id="breadcrumb"><a class="cap breadcrumb" href="/">Home</a>
+<span class="sep"></span><a class="cap breadcrumb" href="/">Blog</a><span class="sep"></span><a class="cap breadcrumb-link" href="/categories/Computer-Graphics/">Computer Graphics</a></div>
+<div class="flex-row" id="post-meta"><span class="text created">Posted on: <time datetime="2025-04-24T16:00:00.000Z">2025-04-25</time></span><span class="sep updated"></span><span class="text updated">Updated on: <time datetime="2025-04-24T16:53:24.109Z">2025-04-25</time></span></div></div></div>
+    
+    <div class="bottom only-title">
+      
+      <div class="text-area">
+        <h1 class="text title"><span>Mipmap 实现详解：从原理到代码（含数学推导）</span></h1>
+        
+      </div>
+    </div>
+    
+  </div>
+  </div><article class="md-text content"><p>在实时渲染中，纹理贴图是赋予模型表面细节的关键技术。然而，当一个带有高分辨率纹理的模型距离摄像机很远，或者以一个倾斜的角度观察时，屏幕上的一个像素可能会对应纹理上的多个纹素（Texel）。如果不进行处理，直接采样会导致严重的<strong>摩尔纹（Moiré patterns）<strong>和</strong>闪烁（Shimmering）<strong>现象，即</strong>纹理混叠（Texture Aliasing）</strong>。</p>
+<p>Mipmapping 是解决这一问题的经典技术。其核心思想是预先生成一系列分辨率递减的纹理版本（Mip 层级），并在渲染时根据屏幕像素所需的细节程度（Level of Detail, LOD）选择合适的 Mip 层级进行采样，从而有效减少混叠并提高渲染性能。</p>
+<p>本文将详细阐述 Mipmap 的实现过程，包括 Mipmap 的生成、关键的 LOD 计算（包含数学推导）以及最终的三线性过滤采样。</p>
+<h2 id="1-Mipmap-的生成"><a href="#1-Mipmap-的生成" class="headerlink" title="1. Mipmap 的生成"></a>1. Mipmap 的生成</h2><p>Mipmap 的基础是创建一系列低分辨率的纹理图像：</p>
+<ul>
+<li><strong>Level 0</strong>: 原始的、最高分辨率的纹理。</li>
+<li><strong>Level 1</strong>: 分辨率是 Level 0 的一半（宽和高各一半）。</li>
+<li><strong>Level 2</strong>: 分辨率是 Level 1 的一半。</li>
+<li>… 以此类推，直到某个维度的分辨率达到 1。</li>
+</ul>
+<h3 id="生成方法"><a href="#生成方法" class="headerlink" title="生成方法"></a>生成方法</h3><p>最常用的方法是<strong>下采样（Downsampling）</strong>。一个简单的实现是使用 <strong>2x2 盒子滤波器（Box Filter）</strong>：将上一层级中每 2x2 个像素的颜色进行平均，得到下一层级的一个像素颜色。</p>
+<p>以下是 <code>TGATexture</code> 实现中的 <code>generateNextMipLevel</code> 函数示例：</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">namespace</span> &#123; <span class="comment">// Anonymous namespace</span></span><br><span class="line"></span><br><span class="line"><span class="comment">// Simple Box Filter downsampling for Mipmap Generation</span></span><br><span class="line"><span class="function"><span class="type">bool</span> <span class="title">generateNextMipLevel</span><span class="params">(<span class="type">const</span> Texture::MipLevel&amp; inputLevel, Texture::MipLevel&amp; outputLevel)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (inputLevel.width &lt;= <span class="number">1</span> &amp;&amp; inputLevel.height &lt;= <span class="number">1</span>) &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">false</span>; <span class="comment">// Cannot downsample further</span></span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    outputLevel.width = std::<span class="built_in">max</span>(<span class="number">1</span>, inputLevel.width / <span class="number">2</span>);</span><br><span class="line">    outputLevel.height = std::<span class="built_in">max</span>(<span class="number">1</span>, inputLevel.height / <span class="number">2</span>);</span><br><span class="line">    outputLevel.pixels.<span class="built_in">resize</span>(outputLevel.width * outputLevel.height);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">for</span> (<span class="type">int</span> y = <span class="number">0</span>; y &lt; outputLevel.height; ++y) &#123;</span><br><span class="line">        <span class="keyword">for</span> (<span class="type">int</span> x = <span class="number">0</span>; x &lt; outputLevel.width; ++x) &#123;</span><br><span class="line">            <span class="comment">// Calculate corresponding 2x2 area top-left corner in input level</span></span><br><span class="line">            <span class="type">int</span> inputX = x * <span class="number">2</span>;</span><br><span class="line">            <span class="type">int</span> inputY = y * <span class="number">2</span>;</span><br><span class="line"></span><br><span class="line">            <span class="comment">// Average 2x2 block (handle boundaries by clamping coordinates)</span></span><br><span class="line">            <span class="type">const</span> vec3f&amp; p00 = inputLevel.pixels[std::<span class="built_in">min</span>(inputLevel.height - <span class="number">1</span>, inputY + <span class="number">0</span>) * inputLevel.width + std::<span class="built_in">min</span>(inputLevel.width - <span class="number">1</span>, inputX + <span class="number">0</span>)];</span><br><span class="line">            <span class="type">const</span> vec3f&amp; p10 = inputLevel.pixels[std::<span class="built_in">min</span>(inputLevel.height - <span class="number">1</span>, inputY + <span class="number">0</span>) * inputLevel.width + std::<span class="built_in">min</span>(inputLevel.width - <span class="number">1</span>, inputX + <span class="number">1</span>)];</span><br><span class="line">            <span class="type">const</span> vec3f&amp; p01 = inputLevel.pixels[std::<span class="built_in">min</span>(inputLevel.height - <span class="number">1</span>, inputY + <span class="number">1</span>) * inputLevel.width + std::<span class="built_in">min</span>(inputLevel.width - <span class="number">1</span>, inputX + <span class="number">0</span>)];</span><br><span class="line">            <span class="type">const</span> vec3f&amp; p11 = inputLevel.pixels[std::<span class="built_in">min</span>(inputLevel.height - <span class="number">1</span>, inputY + <span class="number">1</span>) * inputLevel.width + std::<span class="built_in">min</span>(inputLevel.width - <span class="number">1</span>, inputX + <span class="number">1</span>)];</span><br><span class="line"></span><br><span class="line">            vec3f sumColor = (p00 + p10 + p01 + p11) * <span class="number">0.25f</span>; <span class="comment">// Average the 4 pixels</span></span><br><span class="line">            outputLevel.pixels[y * outputLevel.width + x] = sumColor;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> <span class="literal">true</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">&#125; <span class="comment">// end anonymous namespace</span></span><br></pre></td></tr></table></figure>
+
+<p>在 <code>TGATexture::load</code> 中，生成 Mipmap 的流程如下：</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Inside TGATexture::load after loading base level</span></span><br><span class="line"><span class="type">int</span> currentLevelIndex = <span class="number">0</span>;</span><br><span class="line"><span class="keyword">while</span> (mipLevels[currentLevelIndex].width &gt; <span class="number">1</span> || mipLevels[currentLevelIndex].height &gt; <span class="number">1</span>) &#123;</span><br><span class="line">    Texture::MipLevel nextLevel;</span><br><span class="line">    <span class="keyword">if</span> (!<span class="built_in">generateNextMipLevel</span>(mipLevels[currentLevelIndex], nextLevel)) <span class="keyword">break</span>;</span><br><span class="line">    mipLevels.<span class="built_in">push_back</span>(std::<span class="built_in">move</span>(nextLevel));</span><br><span class="line">    currentLevelIndex++;</span><br><span class="line">    <span class="comment">// Safety break ...</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="加载预生成-Mipmap"><a href="#加载预生成-Mipmap" class="headerlink" title="加载预生成 Mipmap"></a>加载预生成 Mipmap</h3><p>某些纹理格式（如 DDS）允许直接存储预先生成好的 Mipmap 层级。加载时只需按顺序读取并解压（如果需要）每个层级的数据：</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Inside DDSTexture::load</span></span><br><span class="line"><span class="type">uint32_t</span> numLevels = (header.flags &amp; DDSD_MIPMAPCOUNT) ? header.mipMapCount : <span class="number">1</span>;</span><br><span class="line">mipLevels.<span class="built_in">resize</span>(numLevels);</span><br><span class="line"><span class="type">int</span> currentWidth = baseWidth;</span><br><span class="line"><span class="type">int</span> currentHeight = baseHeight;</span><br><span class="line"></span><br><span class="line"><span class="keyword">for</span> (<span class="type">uint32_t</span> level = <span class="number">0</span>; level &lt; numLevels; ++level) &#123;</span><br><span class="line">    <span class="comment">// ... calculate dataSize for this level ...</span></span><br><span class="line">    <span class="function">std::vector&lt;<span class="type">unsigned</span> <span class="type">char</span>&gt; <span class="title">compressedData</span><span class="params">(dataSize)</span></span>;</span><br><span class="line">    file.<span class="built_in">read</span>(<span class="built_in">reinterpret_cast</span>&lt;<span class="type">char</span>*&gt;(compressedData.<span class="built_in">data</span>()), dataSize);</span><br><span class="line">    <span class="comment">// ... check read errors ...</span></span><br><span class="line"></span><br><span class="line">    mipLevels[level].width = currentWidth;</span><br><span class="line">    mipLevels[level].height = currentHeight;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// Decompress this level into mipLevels[level].pixels</span></span><br><span class="line">    <span class="type">bool</span> success = <span class="literal">false</span>;</span><br><span class="line">    <span class="keyword">if</span> (isDXT1) success = <span class="built_in">decompressDXT1LevelInternal</span>(compressedData, currentWidth, currentHeight, mipLevels[level].pixels);</span><br><span class="line">    <span class="comment">// ... handle DXT5, ATI2 etc. ...</span></span><br><span class="line">    <span class="keyword">if</span> (!success) &#123; <span class="comment">/* handle error */</span> &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// Calculate dimensions for the next level</span></span><br><span class="line">    currentWidth = std::<span class="built_in">max</span>(<span class="number">1</span>, currentWidth / <span class="number">2</span>);</span><br><span class="line">    currentHeight = std::<span class="built_in">max</span>(<span class="number">1</span>, currentHeight / <span class="number">2</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="2-细节级别-Level-of-Detail-LOD-计算"><a href="#2-细节级别-Level-of-Detail-LOD-计算" class="headerlink" title="2. 细节级别 (Level of Detail - LOD) 计算"></a>2. 细节级别 (Level of Detail - LOD) 计算</h2><p>LOD 计算是 Mipmapping 的核心。我们需要为屏幕上的每个像素计算一个 LOD 值，表示该像素需要多大程度的纹理细节。LOD 值越高，表示需要的细节越少，应使用分辨率更低的 Mip 层级。</p>
+<p>LOD 的计算基于纹理坐标在屏幕空间的变化率。如果纹理坐标 $(u, v)$ 相对于屏幕坐标 $(x, y)$ 变化很快（例如，纹理被强烈压缩），则需要更模糊的 Mip 层级（高 LOD）；反之，如果变化很慢（纹理被放大），则需要更清晰的 Mip 层级（低 LOD）。</p>
+<h3 id="数学推导"><a href="#数学推导" class="headerlink" title="数学推导"></a>数学推导</h3><p>目标是计算偏导数：$\frac{\partial u}{\partial x}$, $\frac{\partial u}{\partial y}$, $\frac{\partial v}{\partial x}$, $\frac{\partial v}{\partial y}$。由于透视投影的存在，$u$ 和 $v$ 并非屏幕坐标 $x$ 和 $y$ 的线性函数，直接计算这些偏导数较为复杂。</p>
+<p>经过透视除法后的**透视矫正（Perspective-Correct）**属性是屏幕坐标的线性函数。这些属性包括 $u’ &#x3D; \frac{u}{w}$, $v’ &#x3D; \frac{v}{w}$ 以及 $q &#x3D; \frac{1}{w}$，其中 $w$ 是顶点变换到裁剪空间后的齐次坐标 $W$ 分量。</p>
+<p>我们可以先计算这些矫正后属性对屏幕坐标的梯度：$\frac{\partial u’}{\partial x}$, $\frac{\partial u’}{\partial y}$, $\frac{\partial v’}{\partial x}$, $\frac{\partial v’}{\partial y}$, $\frac{\partial q}{\partial x}$, $\frac{\partial q}{\partial y}$。这些梯度在三角形内部是恒定的，可在三角形设置阶段（光栅化之前）计算一次。</p>
+<p>假设三角形在屏幕空间的顶点坐标为 $(x_0, y_0), (x_1, y_1), (x_2, y_2)$，对应的某个透视矫正属性值为 $a_0, a_1, a_2$。我们可以建立线性方程组：</p>
+<p>$$<br>\begin{aligned}<br>a_0 &amp;&#x3D; A x_0 + B y_0 + C \<br>a_1 &amp;&#x3D; A x_1 + B y_1 + C \<br>a_2 &amp;&#x3D; A x_2 + B y_2 + C<br>\end{aligned}<br>$$</p>
+<p>解这个方程组得到 $A &#x3D; \frac{\partial a}{\partial x}$ 和 $B &#x3D; \frac{\partial a}{\partial y}$。使用克莱姆法则或直接代入消元：</p>
+<p>$$<br>\frac{\partial a}{\partial x} &#x3D; \frac{(a_1 - a_0)(y_2 - y_0) - (a_2 - a_0)(y_1 - y_0)}{(x_1 - x_0)(y_2 - y_0) - (x_2 - x_0)(y_1 - y_0)}<br>$$</p>
+<p>$$<br>\frac{\partial a}{\partial y} &#x3D; \frac{(a_2 - a_0)(x_1 - x_0) - (a_1 - a_0)(x_2 - x_0)}{(x_1 - x_0)(y_2 - y_0) - (x_2 - x_0)(y_1 - y_0)}<br>$$</p>
+<p>分母是三角形屏幕空间面积的两倍（带符号）。令 $\Delta &#x3D; (x_1 - x_0)(y_2 - y_0) - (x_2 - x_0)(y_1 - y_0)$。将 $a$ 替换为 $u’, v’, q$，即可计算 $\frac{\partial u’}{\partial x}$, $\frac{\partial v’}{\partial x}$, $\frac{\partial q}{\partial x}$ 等。</p>
+<p>以下是相关代码实现：</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Inside calculateAccurateGradients(const ScreenVertex v[3])</span></span><br><span class="line">AccurateScreenSpaceGradients grads;</span><br><span class="line"><span class="type">float</span> x0 = <span class="built_in">static_cast</span>&lt;<span class="type">float</span>&gt;(v[<span class="number">0</span>].x), y0 = <span class="built_in">static_cast</span>&lt;<span class="type">float</span>&gt;(v[<span class="number">0</span>].y);</span><br><span class="line"><span class="comment">// ... x1, y1, x2, y2 ...</span></span><br><span class="line">vec2f uv0_over_w = v[<span class="number">0</span>].varyings.uv * v[<span class="number">0</span>].invW;</span><br><span class="line"><span class="comment">// ... uv1_over_w, uv2_over_w ...</span></span><br><span class="line"><span class="type">float</span> invW0 = v[<span class="number">0</span>].invW; <span class="comment">// This is q0</span></span><br><span class="line"><span class="comment">// ... invW1, invW2 ...</span></span><br><span class="line"></span><br><span class="line"><span class="type">float</span> delta = (x1 - x0) * (y2 - y0) - (x2 - x0) * (y1 - y0);</span><br><span class="line"><span class="keyword">if</span> (std::<span class="built_in">abs</span>(delta) &lt; <span class="number">1e-9f</span>) <span class="keyword">return</span> grads; <span class="comment">// Handle degenerate</span></span><br><span class="line"><span class="type">float</span> invDelta = <span class="number">1.0f</span> / delta;</span><br><span class="line"></span><br><span class="line"><span class="comment">// Calculate gradients of perspective-correct attributes</span></span><br><span class="line">grads.dUVoverW_dX = ((uv1_over_w - uv0_over_w) * (y2 - y0) - (uv2_over_w - uv0_over_w) * (y1 - y0)) * invDelta;</span><br><span class="line">grads.dUVoverW_dY = ((uv2_over_w - uv0_over_w) * (x1 - x0) - (uv1_over_w - uv0_over_w) * (x2 - x0)) * invDelta;</span><br><span class="line">grads.dInvW_dX = ((invW1 - invW0) * (y2 - y0) - (invW2 - invW0) * (y1 - y0)) * invDelta; <span class="comment">// dq/dx</span></span><br><span class="line">grads.dInvW_dY = ((invW2 - invW0) * (x1 - x0) - (invW1 - invW0) * (x2 - x0)) * invDelta; <span class="comment">// dq/dy</span></span><br></pre></td></tr></table></figure>
+
+<p>使用<strong>链式法则</strong>计算原始纹理坐标 $(u, v)$ 的导数。因为 $u &#x3D; \frac{u’}{q}$ 且 $v &#x3D; \frac{v’}{q}$：</p>
+<p>$$<br>\frac{\partial u}{\partial x} &#x3D; \frac{\partial}{\partial x} \left( \frac{u’}{q} \right) &#x3D; \frac{\frac{\partial u’}{\partial x} q - u’ \frac{\partial q}{\partial x}}{q^2} &#x3D; \frac{1}{q} \frac{\partial u’}{\partial x} - \frac{u’}{q^2} \frac{\partial q}{\partial x} &#x3D; w \frac{\partial u’}{\partial x} - u w \frac{\partial q}{\partial x}<br>$$</p>
+<p>$$<br>\frac{\partial v}{\partial x} &#x3D; w \frac{\partial v’}{\partial x} - v w \frac{\partial q}{\partial x}<br>$$</p>
+<p>$$<br>\frac{\partial u}{\partial y} &#x3D; w \frac{\partial u’}{\partial y} - u w \frac{\partial q}{\partial y}<br>$$</p>
+<p>$$<br>\frac{\partial v}{\partial y} &#x3D; w \frac{\partial v’}{\partial y} - v w \frac{\partial q}{\partial y}<br>$$</p>
+<p>这些计算需在每个像素执行，因为 $u, v, w$（以及 $q &#x3D; \frac{1}{w}$）在像素间通过插值得到：</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Inside drawScanlines pixel loop (x loop)</span></span><br><span class="line"><span class="type">float</span> currentInvW = invWa + (invWb - invWa) * tHoriz; <span class="comment">// Interpolated q = 1/w</span></span><br><span class="line"><span class="keyword">if</span> (std::<span class="built_in">abs</span>(currentInvW) &lt; <span class="number">1e-9f</span>) <span class="keyword">continue</span>; <span class="comment">// Avoid division by zero</span></span><br><span class="line"><span class="type">float</span> currentW = <span class="number">1.0f</span> / currentInvW;</span><br><span class="line">Varyings finalVaryings = <span class="built_in">interpolateVaryings</span>(tHoriz, varyingsA, varyingsB, invWa, invWb); <span class="comment">// Interpolated u, v etc.</span></span><br><span class="line"></span><br><span class="line"><span class="comment">// --- Accurate Derivative Calculation using Chain Rule ---</span></span><br><span class="line">vec2f uv_ddx = currentW * gradients.dUVoverW_dX - finalVaryings.uv * currentW * gradients.dInvW_dX;</span><br><span class="line">vec2f uv_ddy = currentW * gradients.dUVoverW_dY - finalVaryings.uv * currentW * gradients.dInvW_dY;</span><br></pre></td></tr></table></figure>
+
+<p>接下来，计算标量值 $\rho$，表示纹理在屏幕上被拉伸或压缩的程度。通常取 $x$ 和 $y$ 方向上变化率向量长度的最大值：</p>
+<p>$$<br>\rho &#x3D; \max \left( \sqrt{ \left( \frac{\partial u}{\partial x} \right)^2 + \left( \frac{\partial v}{\partial x} \right)^2 }, \sqrt{ \left( \frac{\partial u}{\partial y} \right)^2 + \left( \frac{\partial v}{\partial y} \right)^2 } \right)<br>$$</p>
+<p>$\rho$ 表示屏幕上移动一个像素的距离，大约对应于纹理空间中移动 $\rho$ 个纹素的距离。最终，计算 LOD 值 $\lambda$（OpenGL 术语）：</p>
+<p>$$<br>\lambda &#x3D; \log_2(\rho)<br>$$</p>
+<p>若 $\lambda &#x3D; 0$，表示屏幕一个像素对应纹理一个纹素，使用 Level 0；若 $\lambda &#x3D; 1$，表示屏幕一个像素对应纹理 2x2 个纹素，使用 Level 1；若 $\lambda &#x3D; k$，表示屏幕一个像素对应纹理 $2^k \times 2^k$ 个纹素，使用 Level $k$。</p>
+<p>在代码中，通常考虑纹理尺寸 $W_{tex}, H_{tex}$，并直接计算 $\rho^2$ 以避免开方：</p>
+<p>$$<br>\rho^2 \approx \max \left( \frac{\left| \frac{d(u,v)}{dx} \right|^2}{W_{tex}^2}, \frac{\left| \frac{d(u,v)}{dy} \right|^2}{H_{tex}^2} \right)<br>$$</p>
+<p>这里使用向量 $\frac{d(u,v)}{dx} &#x3D; \left( \frac{\partial u}{\partial x}, \frac{\partial v}{\partial x} \right)$ 的长度平方，并假设纹理是各向同性的。LOD 计算为：</p>
+<p>$$<br>\lambda &#x3D; \frac{1}{2} \log_2(\rho^2)<br>$$</p>
+<p>代码实现如下：</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Inside Texture::sample(..., const vec2f&amp; ddx, const vec2f&amp; ddy)</span></span><br><span class="line"><span class="type">const</span> <span class="keyword">auto</span>&amp; baseLevel = mipLevels[<span class="number">0</span>];</span><br><span class="line"><span class="type">float</span> baseWidth = <span class="built_in">static_cast</span>&lt;<span class="type">float</span>&gt;(baseLevel.width);</span><br><span class="line"><span class="type">float</span> baseHeight = <span class="built_in">static_cast</span>&lt;<span class="type">float</span>&gt;(baseLevel.height);</span><br><span class="line"></span><br><span class="line"><span class="comment">// Calculate rho squared</span></span><br><span class="line"><span class="type">float</span> rho_sq = std::<span class="built_in">max</span>(ddx.<span class="built_in">lengthSq</span>() * baseWidth * baseWidth,</span><br><span class="line">                        ddy.<span class="built_in">lengthSq</span>() * baseHeight * baseHeight);</span><br><span class="line"></span><br><span class="line"><span class="comment">// Calculate LOD level</span></span><br><span class="line"><span class="type">float</span> lod = <span class="number">0.0f</span>;</span><br><span class="line"><span class="keyword">if</span> (rho_sq &gt; <span class="number">1e-9f</span>) &#123; <span class="comment">// Avoid log(0)</span></span><br><span class="line">    lod = <span class="number">0.5f</span> * std::<span class="built_in">log2</span>(rho_sq);</span><br><span class="line">&#125;</span><br><span class="line">lod = std::<span class="built_in">max</span>(<span class="number">0.0f</span>, lod); <span class="comment">// Clamp LOD &gt;= 0</span></span><br></pre></td></tr></table></figure>
+
+<h2 id="3-Mipmap-采样-三线性过滤"><a href="#3-Mipmap-采样-三线性过滤" class="headerlink" title="3. Mipmap 采样 (三线性过滤)"></a>3. Mipmap 采样 (三线性过滤)</h2><p>计算出 LOD 值 $\lambda$ 后，使用三线性过滤（Trilinear Filtering）从 Mipmap 层级中采样颜色：</p>
+<ol>
+<li><p><strong>选择层级</strong>：根据 $\lambda$ 确定两个最接近的 Mip 层级：</p>
+<ul>
+<li>$D_0 &#x3D; \lfloor \lambda \rfloor$（向下取整）</li>
+<li>$D_1 &#x3D; D_0 + 1$<br>确保 $D_0$ 和 $D_1$ 不超过最大 Mip 层级索引。</li>
+</ul>
+</li>
+<li><p><strong>层内双线性采样</strong>：对 $D_0$ 和 $D_1$，使用纹理坐标 $(u, v)$ 进行<strong>双线性过滤（Bilinear Filtering）</strong>，得到颜色 $C_0$ 和 $C_1$。</p>
+</li>
+</ol>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Texture::sampleBilinear(const MipLevel&amp; level, float u, float v) helper function</span></span><br><span class="line"><span class="comment">// ... calculates x0, y0, u_frac, v_frac ...</span></span><br><span class="line"><span class="comment">// ... samples 4 neighbors c00, c10, c01, c11 with clamping ...</span></span><br><span class="line"><span class="comment">// Bilinear interpolation:</span></span><br><span class="line">vec3f top = c00 * (<span class="number">1.0f</span> - u_frac) + c10 * u_frac;</span><br><span class="line">vec3f bottom = c01 * (<span class="number">1.0f</span> - u_frac) + c11 * u_frac;</span><br><span class="line"><span class="keyword">return</span> top * (<span class="number">1.0f</span> - v_frac) + bottom * v_frac;</span><br></pre></td></tr></table></figure>
+
+<ol start="3">
+<li><strong>层间线性插值</strong>：计算 $\lambda$ 的小数部分 $t &#x3D; \lambda - \lfloor \lambda \rfloor$，在 $C_0$ 和 $C_1$ 之间进行线性插值，得到最终颜色 $C$：</li>
+</ol>
+<p>$$<br>C &#x3D; C_0 \times (1 - t) + C_1 \times t<br>$$</p>
+<p>代码实现如下：</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Inside Texture::sample(...) after calculating lod</span></span><br><span class="line"><span class="type">int</span> maxLevel = <span class="built_in">static_cast</span>&lt;<span class="type">int</span>&gt;(mipLevels.<span class="built_in">size</span>()) - <span class="number">1</span>;</span><br><span class="line"><span class="type">int</span> level0_idx = <span class="built_in">static_cast</span>&lt;<span class="type">int</span>&gt;(std::<span class="built_in">floor</span>(lod));</span><br><span class="line">level0_idx = std::<span class="built_in">min</span>(level0_idx, maxLevel); <span class="comment">// Clamp</span></span><br><span class="line"></span><br><span class="line"><span class="comment">// Sample from the first level using bilinear filtering</span></span><br><span class="line">vec3f color0 = <span class="built_in">sampleBilinear</span>(mipLevels[level0_idx], u, v);</span><br><span class="line"></span><br><span class="line"><span class="comment">// If we are at the highest LOD or only have one level, return bilinearly filtered result</span></span><br><span class="line"><span class="keyword">if</span> (level0_idx == maxLevel) &#123;</span><br><span class="line">    <span class="keyword">return</span> color0;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// Get the second level index for trilinear interpolation</span></span><br><span class="line"><span class="type">int</span> level1_idx = level0_idx + <span class="number">1</span>; <span class="comment">// Already clamped indirectly</span></span><br><span class="line"></span><br><span class="line"><span class="comment">// Sample from the second level using bilinear filtering</span></span><br><span class="line">vec3f color1 = <span class="built_in">sampleBilinear</span>(mipLevels[level1_idx], u, v);</span><br><span class="line"></span><br><span class="line"><span class="comment">// Calculate interpolation factor between the two levels</span></span><br><span class="line"><span class="type">float</span> <span class="type">level_t</span> = lod - <span class="built_in">static_cast</span>&lt;<span class="type">float</span>&gt;(level0_idx); <span class="comment">// Fractional part of LOD</span></span><br><span class="line"></span><br><span class="line"><span class="comment">// Trilinear interpolation</span></span><br><span class="line"><span class="keyword">return</span> color0 * (<span class="number">1.0f</span> - <span class="type">level_t</span>) + color1 * <span class="type">level_t</span>;</span><br></pre></td></tr></table></figure>
+
+<h2 id="4-整合到渲染管线"><a href="#4-整合到渲染管线" class="headerlink" title="4. 整合到渲染管线"></a>4. 整合到渲染管线</h2><p>Mipmap 流程在渲染器中的整合如下：</p>
+<ol>
+<li><p><strong>顶点着色器</strong>：</p>
+<ul>
+<li>处理顶点，输出裁剪空间坐标和需要插值的 Varyings（包括纹理坐标 $uv$）。</li>
+</ul>
+</li>
+<li><p><strong>三角形处理 (processFace)</strong>：</p>
+<ul>
+<li>对顶点进行透视除法和视口变换，得到屏幕坐标 $(x, y)$ 和 $invW$。</li>
+<li>进行背面剔除。</li>
+<li>调用 <code>calculateAccurateGradients</code> 计算三角形的 $\frac{\partial (u&#x2F;w)}{\partial x}$, $\frac{\partial (1&#x2F;w)}{\partial x}$ 等梯度。</li>
+<li>调用 <code>drawTriangle</code>。</li>
+</ul>
+</li>
+<li><p><strong>三角形光栅化 (drawTriangle, drawScanlines)</strong>：</p>
+<ul>
+<li>遍历三角形覆盖的像素。</li>
+<li>对每个像素，使用重心坐标或边插值计算插值后的 Varyings（包括 $uv$）和 $invW$。</li>
+<li>使用链式法则和预计算的梯度，计算像素的 $\frac{\partial u}{\partial x}$, $\frac{\partial v}{\partial x}$, $\frac{\partial u}{\partial y}$, $\frac{\partial v}{\partial y}$。</li>
+<li>调用片段着色器，传入插值后的 Varyings 和 UV 导数。</li>
+</ul>
+</li>
+<li><p><strong>片段着色器 (fragment)</strong>：</p>
+<ul>
+<li>接收插值后的 Varyings 和 UV 导数 ($uv_ddx$, $uv_ddy$)。</li>
+<li>调用 <code>Texture::sample(u, v, uv_ddx, uv_ddy)</code> 执行 LOD 计算和三线性过滤，返回颜色。</li>
+<li>使用采样结果进行光照计算，输出最终像素颜色。</li>
+</ul>
+</li>
+</ol>
+<h2 id="5-结论"><a href="#5-结论" class="headerlink" title="5. 结论"></a>5. 结论</h2><p>Mipmapping 是现代实时渲染中不可或缺的技术。通过预计算多级分辨率的纹理，并根据屏幕空间变化率智能选择合适的层级进行采样（通常使用三线性过滤），它显著减少纹理混叠现象，提高渲染图像质量，同时通过减少访问高分辨率纹理数据提升性能。</p>
+
+<div class="article-footer fs14">
+    <section id="license">
+      <div class="header"><span>License</span></div>
+      <div class="body"><p>本文采用 <a target="_blank" rel="noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0/">署名-非商业性使用-相同方式共享 4.0 国际</a> 许可协议，转载请注明出处。</p>
+</div>
+    </section>
+    </div>
+</article>
+<div class="related-wrap" id="read-next"><section class="body"><div class="item" id="prev"></div><div class="item" id="next"><div class="note">Older</div><a href="/2025/04/24/FPS_Camera_Movement_Guide/">Implementing FPS Camera Movement in a 3D Application</a></div></section></div>
+
+
+
+
+
+
+<footer class="page-footer footnote"><hr><div class="text"><p>本站由 <a href="/">AnyaCoder</a> 使用 <a target="_blank" rel="noopener" href="https://github.com/xaoxuu/hexo-theme-stellar/tree/1.29.1">Stellar 1.29.1</a> 主题创建。<br>本博客所有文章除特别声明外，均采用 <a target="_blank" rel="noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0/">CC BY-NC-SA 4.0</a> 许可协议，转载请注明出处。</p>
+</div></footer>
+<div class="main-mask" onclick="sidebar.dismiss()"></div></div><aside class="l_right">
+<div class="widgets">
+
+
+
+<widget class="widget-wrapper toc" id="data-toc" collapse="false"><div class="widget-header dis-select"><span class="name">On This Page</span><a class="cap-action" onclick="sidebar.toggleTOC()" ><svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6h11m-11 6h11m-11 6h11M4 6h1v4m-1 0h2m0 8H4c0-1 2-2 2-3s-1-1.5-2-1"/></svg></a></div><div class="widget-body"><ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#1-Mipmap-%E7%9A%84%E7%94%9F%E6%88%90"><span class="toc-text">1. Mipmap 的生成</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E7%94%9F%E6%88%90%E6%96%B9%E6%B3%95"><span class="toc-text">生成方法</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%8A%A0%E8%BD%BD%E9%A2%84%E7%94%9F%E6%88%90-Mipmap"><span class="toc-text">加载预生成 Mipmap</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#2-%E7%BB%86%E8%8A%82%E7%BA%A7%E5%88%AB-Level-of-Detail-LOD-%E8%AE%A1%E7%AE%97"><span class="toc-text">2. 细节级别 (Level of Detail - LOD) 计算</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%95%B0%E5%AD%A6%E6%8E%A8%E5%AF%BC"><span class="toc-text">数学推导</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#3-Mipmap-%E9%87%87%E6%A0%B7-%E4%B8%89%E7%BA%BF%E6%80%A7%E8%BF%87%E6%BB%A4"><span class="toc-text">3. Mipmap 采样 (三线性过滤)</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#4-%E6%95%B4%E5%90%88%E5%88%B0%E6%B8%B2%E6%9F%93%E7%AE%A1%E7%BA%BF"><span class="toc-text">4. 整合到渲染管线</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#5-%E7%BB%93%E8%AE%BA"><span class="toc-text">5. 结论</span></a></li></ol></div><div class="widget-footer">
+
+<a class="top" onclick="util.scrollTop()"><svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 12c0-4.714 0-7.071 1.464-8.536C4.93 2 7.286 2 12 2c4.714 0 7.071 0 8.535 1.464C22 4.93 22 7.286 22 12c0 4.714 0 7.071-1.465 8.535C19.072 22 16.714 22 12 22s-7.071 0-8.536-1.465C2 19.072 2 16.714 2 12Z"/><path stroke-linecap="round" stroke-linejoin="round" d="m9 15.5l3-3l3 3m-6-4l3-3l3 3"/></g></svg><span>Scroll to Top</span></a></div></widget>
+</div></aside><div class='float-panel blur'>
+  <button type='button' style='display:none' class='laptop-only rightbar-toggle mobile' onclick='sidebar.rightbar()'>
+    <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6h11m-11 6h11m-11 6h11M4 6h1v4m-1 0h2m0 8H4c0-1 2-2 2-3s-1-1.5-2-1"/></svg>
+  </button>
+  <button type='button' style='display:none' class='mobile-only leftbar-toggle mobile' onclick='sidebar.leftbar()'>
+    <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 11c0-3.771 0-5.657 1.172-6.828C4.343 3 6.229 3 10 3h4c3.771 0 5.657 0 6.828 1.172C22 5.343 22 7.229 22 11v2c0 3.771 0 5.657-1.172 6.828C19.657 21 17.771 21 14 21h-4c-3.771 0-5.657 0-6.828-1.172C2 18.657 2 16.771 2 13z"/><path id="sep" stroke-linecap="round" d="M5.5 10h6m-5 4h4m4.5 7V3"/></g></svg>
+  </button>
+</div>
+</div><div class="scripts">
+<script type="text/javascript">
+  const ctx = {
+    date_suffix: {
+      just: `Just`,
+      min: `minutes ago`,
+      hour: `hours ago`,
+      day: `days ago`,
+    },
+    root : `/`,
+  };
+
+  // required plugins (only load if needs)
+  if (`local_search`) {
+    ctx.search = {};
+    ctx.search.service = `local_search`;
+    if (ctx.search.service == 'local_search') {
+      let service_obj = Object.assign({}, `{"field":"all","path":"/search.json","content":true,"sort":"-date"}`);
+      ctx.search[ctx.search.service] = service_obj;
+    }
+  }
+  const def = {
+    avatar: `https://gcore.jsdelivr.net/gh/cdn-x/placeholder@1.0.12/avatar/round/3442075.svg`,
+    cover: `https://gcore.jsdelivr.net/gh/cdn-x/placeholder@1.0.12/cover/76b86c0226ffd.svg`,
+  };
+  const deps = {
+    jquery: `https://cdn.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.min.js`,
+    marked: `https://cdn.jsdelivr.net/npm/marked@13.0.1/lib/marked.umd.min.js`
+  }
+  
+
+</script>
+
+<script type="text/javascript">
+  const utils = {
+    // 懒加载 css https://github.com/filamentgroup/loadCSS
+    css: (href, before, media, attributes) => {
+      var doc = window.document;
+      var ss = doc.createElement("link");
+      var ref;
+      if (before) {
+        ref = before;
+      } else {
+        var refs = (doc.body || doc.getElementsByTagName("head")[0]).childNodes;
+        ref = refs[refs.length - 1];
+      }
+      var sheets = doc.styleSheets;
+      if (attributes) {
+        for (var attributeName in attributes) {
+          if (attributes.hasOwnProperty(attributeName)) {
+            ss.setAttribute(attributeName, attributes[attributeName]);
+          }
+        }
+      }
+      ss.rel = "stylesheet";
+      ss.href = href;
+      ss.media = "only x";
+      function ready(cb) {
+        if (doc.body) {
+          return cb();
+        }
+        setTimeout(function () {
+          ready(cb);
+        });
+      }
+      ready(function () {
+        ref.parentNode.insertBefore(ss, before ? ref : ref.nextSibling);
+      });
+      var onloadcssdefined = function (cb) {
+        var resolvedHref = ss.href;
+        var i = sheets.length;
+        while (i--) {
+          if (sheets[i].href === resolvedHref) {
+            return cb();
+          }
+        }
+        setTimeout(function () {
+          onloadcssdefined(cb);
+        });
+      };
+      function loadCB() {
+        if (ss.addEventListener) {
+          ss.removeEventListener("load", loadCB);
+        }
+        ss.media = media || "all";
+      }
+      if (ss.addEventListener) {
+        ss.addEventListener("load", loadCB);
+      }
+      ss.onloadcssdefined = onloadcssdefined;
+      onloadcssdefined(loadCB);
+      return ss;
+    },
+
+    js: (src, opt) => new Promise((resolve, reject) => {
+      var script = document.createElement('script');
+      if (src.startsWith('/')){
+        src = ctx.root + src.substring(1);
+      }
+      script.src = src;
+      if (opt) {
+        for (let key of Object.keys(opt)) {
+          script[key] = opt[key]
+        }
+      } else {
+        // 默认异步，如果需要同步，第二个参数传入 {} 即可
+        script.async = true
+      }
+      script.onerror = reject
+      script.onload = script.onreadystatechange = function() {
+        const loadState = this.readyState
+        if (loadState && loadState !== 'loaded' && loadState !== 'complete') return
+        script.onload = script.onreadystatechange = null
+        resolve()
+      }
+      document.head.appendChild(script)
+    }),
+
+    jq: (fn) => {
+      if (typeof jQuery === 'undefined') {
+        utils.js(deps.jquery).then(fn)
+      } else {
+        fn()
+      }
+    },
+    
+    onLoading: (el) => {
+      if (el) {
+        $(el).append('<div class="loading-wrap"><svg xmlns="http://www.w3.org/2000/svg" width="2em" height="2em" preserveAspectRatio="xMidYMid meet" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2"><path stroke-dasharray="60" stroke-dashoffset="60" stroke-opacity=".3" d="M12 3C16.9706 3 21 7.02944 21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3Z"><animate fill="freeze" attributeName="stroke-dashoffset" dur="1.3s" values="60;0"/></path><path stroke-dasharray="15" stroke-dashoffset="15" d="M12 3C16.9706 3 21 7.02944 21 12"><animate fill="freeze" attributeName="stroke-dashoffset" dur="0.3s" values="15;0"/><animateTransform attributeName="transform" dur="1.5s" repeatCount="indefinite" type="rotate" values="0 12 12;360 12 12"/></path></g></svg></div>');
+      }
+    },
+    onLoadSuccess: (el) => {
+      if (el) {
+        $(el).find('.loading-wrap').remove();
+      }
+    },
+    onLoadFailure: (el) => {
+      if (el) {
+        $(el).find('.loading-wrap svg').remove();
+        $(el).find('.loading-wrap').append('<svg xmlns="http://www.w3.org/2000/svg" width="2em" height="2em" preserveAspectRatio="xMidYMid meet" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><path stroke-dasharray="60" stroke-dashoffset="60" d="M12 3L21 20H3L12 3Z"><animate fill="freeze" attributeName="stroke-dashoffset" dur="0.5s" values="60;0"/></path><path stroke-dasharray="6" stroke-dashoffset="6" d="M12 10V14"><animate fill="freeze" attributeName="stroke-dashoffset" begin="0.6s" dur="0.2s" values="6;0"/></path></g><circle cx="12" cy="17" r="1" fill="currentColor" fill-opacity="0"><animate fill="freeze" attributeName="fill-opacity" begin="0.8s" dur="0.4s" values="0;1"/></circle></svg>');
+        $(el).find('.loading-wrap').addClass('error');
+      }
+    },
+    request: (el, url, callback, onFailure) => {
+      let retryTimes = 3;
+      utils.onLoading(el);
+      function req() {
+        return new Promise((resolve, reject) => {
+          let status = 0; // 0 等待 1 完成 2 超时
+          let timer = setTimeout(() => {
+            if (status === 0) {
+              status = 2;
+              timer = null;
+              reject('请求超时');
+              if (retryTimes == 0) {
+                onFailure();
+              }
+            }
+          }, 5000);
+          fetch(url).then(function(response) {
+            if (status !== 2) {
+              clearTimeout(timer);
+              resolve(response);
+              timer = null;
+              status = 1;
+            }
+            if (response.ok) {
+              return response.json();
+            }
+            throw new Error('Network response was not ok.');
+          }).then(function(data) {
+            retryTimes = 0;
+            utils.onLoadSuccess(el);
+            callback(data);
+          }).catch(function(error) {
+            if (retryTimes > 0) {
+              retryTimes -= 1;
+              setTimeout(() => {
+                req();
+              }, 5000);
+            } else {
+              utils.onLoadFailure(el);
+              onFailure();
+            }
+          });
+        });
+      }
+      req();
+    },
+  };
+</script>
+
+<script>
+  const sidebar = {
+    leftbar: () => {
+      if (l_body) {
+        l_body.toggleAttribute('leftbar');
+        l_body.removeAttribute('rightbar');
+      }
+    },
+    rightbar: () => {
+      if (l_body) {
+        l_body.toggleAttribute('rightbar');
+        l_body.removeAttribute('leftbar');
+      }
+    },
+    dismiss: () => {
+      if (l_body) {
+        l_body.removeAttribute('leftbar');
+        l_body.removeAttribute('rightbar');
+      }
+    },
+    toggleTOC: () => {
+      document.querySelector('#data-toc').classList.toggle('collapse');
+    }
+  }
+</script>
+<script type="text/javascript">
+  (() => {
+    const tagSwitchers = document.querySelectorAll('.tag-subtree.parent-tag > a > .tag-switcher-wrapper')
+    for (const tagSwitcher of tagSwitchers) {
+      tagSwitcher.addEventListener('click', (e) => {
+        const parent = e.target.closest('.tag-subtree.parent-tag')
+        parent.classList.toggle('expanded')
+        e.preventDefault()
+      })
+    }
+
+    // Get active tag from query string, then activate it.
+    const urlParams = new URLSearchParams(window.location.search)
+    const activeTag = urlParams.get('tag')
+    if (activeTag) {
+      let tag = document.querySelector(`.tag-subtree[data-tag="${activeTag}"]`)
+      if (tag) {
+        tag.querySelector('a').classList.add('active')
+        
+        while (tag) {
+          tag.classList.add('expanded')
+          tag = tag.parentElement.closest('.tag-subtree.parent-tag')
+        }
+      }
+    }
+  })()
+</script>
+
+
+<!-- required -->
+<script src="/js/main.js?v=1.29.1" defer></script>
+
+<script type="text/javascript">
+  const applyTheme = (theme) => {
+    if (theme === 'auto') {
+      document.documentElement.removeAttribute('data-theme')
+    } else {
+      document.documentElement.setAttribute('data-theme', theme)
+    }
+
+    applyThemeToGiscus(theme)
+  }
+
+  const applyThemeToGiscus = (theme) => {
+    theme = theme === 'auto' ? 'preferred_color_scheme' : theme
+
+    const cmt = document.getElementById('giscus')
+    if (cmt) {
+      // This works before giscus load.
+      cmt.setAttribute('data-theme', theme)
+    }
+
+    const iframe = document.querySelector('#comments > section.giscus > iframe')
+    if (iframe) {
+      // This works after giscus loaded.
+      const src = iframe.src
+      const newSrc = src.replace(/theme=[\w]+/, `theme=${theme}`)
+      iframe.src = newSrc
+    }
+  }
+
+  const switchTheme = () => {
+    // light -> dark -> auto -> light -> ...
+    const currentTheme = document.documentElement.getAttribute('data-theme')
+    let newTheme;
+    switch (currentTheme) {
+      case 'light':
+        newTheme = 'dark'
+        break
+      case 'dark':
+        newTheme = 'auto'
+        break
+      default:
+        newTheme = 'light'
+    }
+    applyTheme(newTheme)
+    window.localStorage.setItem('Stellar.theme', newTheme)
+
+    const messages = {
+      light: `Switched to Light Mode`,
+      dark: `Switched to Dark Mode`,
+      auto: `Switched to Auto Mode`,
+    }
+    hud?.toast?.(messages[newTheme])
+  }
+
+  (() => {
+    // Apply user's preferred theme, if any.
+    const theme = window.localStorage.getItem('Stellar.theme')
+    if (theme !== null) {
+      applyTheme(theme)
+    }
+  })()
+</script>
+
+
+<!-- optional -->
+
+
+
+<script defer>
+  window.addEventListener('DOMContentLoaded', (event) => {
+    ctx.services = Object.assign({}, JSON.parse(`{"mdrender":{"js":"/js/services/mdrender.js"},"siteinfo":{"js":"/js/services/siteinfo.js","api":null},"ghinfo":{"js":"/js/services/ghinfo.js"},"sites":{"js":"/js/services/sites.js"},"friends":{"js":"/js/services/friends.js"},"timeline":{"js":"/js/services/timeline.js"},"fcircle":{"js":"/js/services/fcircle.js"},"weibo":{"js":"/js/services/weibo.js"},"memos":{"js":"/js/services/memos.js"}}`));
+    for (let id of Object.keys(ctx.services)) {
+      const js = ctx.services[id].js;
+      if (id == 'siteinfo') {
+        ctx.cardlinks = document.querySelectorAll('a.link-card[cardlink]');
+        if (ctx.cardlinks?.length > 0) {
+          utils.js(js, { defer: true }).then(function () {
+            setCardLink(ctx.cardlinks);
+          });
+        }
+      } else {
+        const els = document.getElementsByClassName(`ds-${id}`);
+        if (els?.length > 0) {
+          utils.jq(() => {
+            if (id == 'timeline' || 'memos' || 'marked') {
+              utils.js(deps.marked).then(function () {
+                utils.js(js, { defer: true });
+              });
+            } else {
+              utils.js(js, { defer: true });
+            }
+          });
+        }
+      }
+    }
+  });
+</script>
+
+<script>
+  window.addEventListener('DOMContentLoaded', (event) => {
+    ctx.search = {
+      path: `/search.json`,
+    }
+    utils.js('/js/search/local-search.js', { defer: true });
+  });
+</script><script>
+  window.FPConfig = {
+    delay: 0,
+    ignoreKeywords: [],
+    maxRPS: 5,
+    hoverDelay: 25
+  };
+</script>
+<script defer src="https://cdn.jsdelivr.net/npm/flying-pages@2/flying-pages.min.js"></script><script defer src="https://cdn.jsdelivr.net/npm/vanilla-lazyload@19.1.3/dist/lazyload.min.js"></script>
+<script>
+  // https://www.npmjs.com/package/vanilla-lazyload
+  // Set the options globally
+  // to make LazyLoad self-initialize
+  window.lazyLoadOptions = {
+    elements_selector: ".lazy",
+  };
+  // Listen to the initialization event
+  // and get the instance of LazyLoad
+  window.addEventListener(
+    "LazyLoad::Initialized",
+    function (event) {
+      window.lazyLoadInstance = event.detail.instance;
+    },
+    false
+  );
+  document.addEventListener('DOMContentLoaded', function () {
+    window.lazyLoadInstance?.update();
+  });
+</script><script>
+  ctx.fancybox = {
+    selector: `.timenode p>img`,
+    css: `https://cdn.jsdelivr.net/npm/@fancyapps/ui@5.0/dist/fancybox/fancybox.css`,
+    js: `https://cdn.jsdelivr.net/npm/@fancyapps/ui@5.0/dist/fancybox/fancybox.umd.js`
+  };
+  var selector = '[data-fancybox]:not(.error)';
+  if (ctx.fancybox.selector) {
+    selector += `, ${ctx.fancybox.selector}`
+  }
+  var needFancybox = document.querySelectorAll(selector).length !== 0;
+  if (!needFancybox) {
+    const els = document.getElementsByClassName('ds-memos');
+    if (els != undefined && els.length > 0) {
+      needFancybox = true;
+    }
+  }
+  if (needFancybox) {
+    utils.css(ctx.fancybox.css);
+    utils.js(ctx.fancybox.js, { defer: true }).then(function () {
+      Fancybox.bind(selector, {
+        hideScrollbar: false,
+        Thumbs: {
+          autoStart: false,
+        },
+        caption: (fancybox, slide) => {
+          return slide.triggerEl.alt || slide.triggerEl.dataset.caption || null
+        }
+      });
+    })
+  }
+</script>
+<script>
+  window.addEventListener('DOMContentLoaded', (event) => {
+    const swiper_api = document.getElementById('swiper-api');
+    if (swiper_api != undefined) {
+      utils.css(`https://unpkg.com/swiper@10.3.1/swiper-bundle.min.css`);
+      utils.js(`https://unpkg.com/swiper@10.3.1/swiper-bundle.min.js`, { defer: true }).then(function () {
+        const effect = swiper_api.getAttribute('effect') || '';
+        var swiper = new Swiper('.swiper#swiper-api', {
+          slidesPerView: 'auto',
+          spaceBetween: 8,
+          centeredSlides: true,
+          effect: effect,
+          rewind: true,
+          pagination: {
+            el: '.swiper-pagination',
+            clickable: true,
+          },
+          navigation: {
+            nextEl: '.swiper-button-next',
+            prevEl: '.swiper-button-prev',
+          },
+        });
+      })
+    }
+  });
+</script>
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    window.codeElements = document.querySelectorAll('.code');
+    if (window.codeElements.length > 0) {
+      ctx.copycode = {
+        default_text: `Copy`,
+        success_text: `Copied`,
+        toast: `复制成功`,
+      };
+      utils.js('/js/plugins/copycode.js');
+    }
+  });
+</script>
+
+
+<!-- inject -->
+
+</div></body></html>
